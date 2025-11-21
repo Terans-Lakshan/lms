@@ -1,3 +1,4 @@
+import axios from "axios";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -6,9 +7,15 @@ const ForgetPassword = () => {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage("If this email is registered, you will receive a password reset link.");
+    setMessage("");
+    try {
+      const response = await axios.post('http://localhost:3000/forgetpassword', { email });
+      setMessage(response.data.message || "You will receive a password reset link.");
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Error sending reset email. Please try again.");
+    }
   };
 
   return (
@@ -44,7 +51,7 @@ const ForgetPassword = () => {
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 
                        rounded-md shadow transition duration-200"
           >
-            Send Reset Link
+            Send Verification Code
           </button>
         </form>
 

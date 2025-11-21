@@ -65,9 +65,10 @@ export default function Signup() {
 
             if (response.data.error) {
                 toast.error(response.data.error);
-            } else {
-                toast.success("Registered successfully!");
-                navigate("/login");
+            } else if (response.data.message) {
+                toast.success(response.data.message);
+                // Navigate to OTP verification page with email
+                navigate("/signup-confirmation", { state: { email: data.email } });
             }
         } catch (error) {
             toast.error(error?.response?.data?.error || "Failed to sign up");
@@ -78,16 +79,16 @@ export default function Signup() {
 
     // Google signup
     const onGoogleSignup = () => {
-        window.location.href = "http://localhost:3000/auth/google";
+        window.location.href = "http://localhost:3000/google";
     };
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-100 to-emerald-300 p-5">
 
             <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-7">
+                <div className="text-emerald-600 font-bold text-lg">LMS</div>
 
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Sign up now</h2>
-
+                <h2 className="text-xl font-semibold text-gray-900 mb-4 pt-1">Sign up now</h2>
                 {errors.form && (
                     <div className="bg-red-100 text-red-700 p-2 rounded mb-3 text-sm">
                         {errors.form}
@@ -170,7 +171,7 @@ export default function Signup() {
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="mt-2 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                        className="mt-2 h-11 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-semibold shadow"
                     >
                         {submitting ? "Signing up..." : "Create account"}
                     </button>
@@ -180,15 +181,15 @@ export default function Signup() {
 
                 <button
                     onClick={onGoogleSignup}
-                    className="w-full h-11 flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-md"
+                    className="w-full h-11 flex items-center justify-center gap-2 bg-white border border-gray-500 rounded-md"
                 >
                     <img src={Googleicon} className="h-4 w-4" alt="Google" />
-                    <span className="font-semibold text-sm">Sign up using Google</span>
+                    <span className=" font-semibold text-sm">Sign up using Google</span>
                 </button>
 
                 <div className="mt-4 text-center text-gray-500 text-sm">
                     Already have an account?{" "}
-                    <Link to="/login" className="text-blue-600 hover:underline">Log in</Link>
+                    <Link to="/login" className="text-emerald-600 font-medium hover:underline">Log in</Link>
                 </div>
             </div>
         </div>

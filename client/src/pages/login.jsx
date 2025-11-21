@@ -111,7 +111,7 @@ function Login() {
 
               <button
                 type="button"
-                className="w-full inline-flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50"
+                className="w-full inline-flex items-center justify-center gap-2 bg-white-100 border border-gray-400 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50"
                 onClick={() => navigate("/signup")}
               >
                 Create an account
@@ -119,10 +119,16 @@ function Login() {
             </div>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-500">or continue with</div>
-          <div className="mt-3 flex gap-3">
-            <button className="flex-1 py-2 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 justify-center inline-flex items-center gap-2" > <img src={Googleicon} alt="google icon" className="h-5 w-5" />Google</button>
-            
+          <div className="mt-6 text-center text-sm text-gray-500">or</div>
+          
+          <div className="mt-3">
+            <button 
+              onClick={() => window.location.href = 'http://localhost:3000/google'}
+              className="w-full py-2 rounded-md border border-gray-300 bg-white font-semibold text-sm hover:bg-gray-50 justify-center inline-flex items-center gap-2"
+            >
+              <img src={Googleicon} alt="google icon" className="h-5 w-5" />
+              Continue with Google
+            </button>
           </div>
           
           <div className="mt-6 text-center text-sm text-gray-600">
