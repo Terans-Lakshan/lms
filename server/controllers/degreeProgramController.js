@@ -1,5 +1,36 @@
 const DegreeProgram = require('../models/degreeProgramme.js');
 const Enrollment = require('../models/enrollment.js');
+const Course = require('../models/course.js');
+const User = require('../models/user.js');
+
+const createDegreeProgram = async (req, res) => {
+    try {
+        const { title, code, description, previewImage, adminNotes } = req.body;
+
+        // Check if degree program with the same code already exists
+        const existingProgram = await DegreeProgram.findOne({ code });
+        if (existingProgram) {
+            return res.status(400).json({ message: "A degree program with this code already exists" });
+        }
+
+        // Create new degree program
+        const degreeProgram = await DegreeProgram.create({
+            title,
+            code,
+            description,
+            previewImage: previewImage || '',
+            adminNotes: adminNotes || ''
+        });
+
+        res.status(201).json({ 
+            message: "Degree program created successfully", 
+            degreeProgram 
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: "Server error creating degree program" });
+    }
+}
 
 const getAllDegreePrograms = async (req, res) => {
     try {
@@ -105,16 +136,19 @@ const getMyEnrolledPrograms = async (req, res) => {
 
         const enrolledPrograms = await Enrollment.find({ 
             student: studentId, 
-            status: 'approved' 
+            status: 'active' 
         })
             .populate({
                 path: 'degreeProgram',
-                populate: {
+                populate: [{
                     path: 'courses',
                     select: 'title code credit'
-                }
+                }, {
+                    path: 'lecturers',
+                    select: 'name email'
+                }]
             })
-            .sort({ processedAt: -1 });
+            .sort({ createdAt: -1 });
         
         res.status(200).json(enrolledPrograms);
     } catch (error) {
@@ -124,6 +158,7 @@ const getMyEnrolledPrograms = async (req, res) => {
 }
 
 module.exports = {
+    createDegreeProgram,
     getAllDegreePrograms,
     enrollInProgram,
     getPendingEnrollments,

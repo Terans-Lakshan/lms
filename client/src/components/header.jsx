@@ -1,5 +1,9 @@
-/* eslint-disable no-unused-vars */
+import { useState } from 'react';
+import AccountBar from './accountBar';
+
 const Header = ({ sidebarOpen, setSidebarOpen, user }) => {
+  const [accountBarOpen, setAccountBarOpen] = useState(false);
+
   return (
     <header className="bg-teal-500 border-b border-gray-200 px-10 py-6 flex items-center justify-between rounded-b-lg w-full">
       <div className="flex items-center gap-4 flex-1">
@@ -18,11 +22,21 @@ const Header = ({ sidebarOpen, setSidebarOpen, user }) => {
       </div>
 
       <div className="relative">
-        <button className="p-2 hover:bg-teal-600 rounded-lg" title="Account">
+        <button 
+          onClick={() => setAccountBarOpen(!accountBarOpen)}
+          className="p-2 hover:bg-teal-600 rounded-lg" 
+          title="Account"
+        >
           <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
         </button>
+        
+        <AccountBar 
+          user={user} 
+          isOpen={accountBarOpen} 
+          onClose={() => setAccountBarOpen(false)} 
+        />
       </div>
     </header>
   );

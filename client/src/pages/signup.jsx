@@ -61,7 +61,7 @@ export default function Signup() {
 
         setSubmitting(true);
         try {
-            const response = await axios.post("/register", data);
+            const response = await axios.post("/api/auth/register", data);
 
             if (response.data.error) {
                 toast.error(response.data.error);
@@ -77,10 +77,13 @@ export default function Signup() {
         }
     };
 
-    // Google signup
+    
+    
+    // Google OAuth signup handler
     const onGoogleSignup = () => {
         window.location.href = "http://localhost:3000/google";
     };
+    
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-100 to-emerald-300 p-5">
@@ -179,13 +182,15 @@ export default function Signup() {
 
                 <div className="text-center mt-3 mb-2 text-gray-500 text-sm">or</div>
 
+                
                 <button
                     onClick={onGoogleSignup}
-                    className="w-full h-11 flex items-center justify-center gap-2 bg-white border border-gray-500 rounded-md"
+                    className="w-full h-11 flex items-center justify-center gap-2 bg-white border border-gray-500 rounded-md hover:bg-gray-50"
                 >
                     <img src={Googleicon} className="h-4 w-4" alt="Google" />
-                    <span className=" font-semibold text-sm">Sign up using Google</span>
+                    <span className="font-semibold text-sm">Sign up with Google</span>
                 </button>
+                
 
                 <div className="mt-4 text-center text-gray-500 text-sm">
                     Already have an account?{" "}

@@ -25,11 +25,16 @@ function Login() {
     e.preventDefault();
 
     try {
-      const response = await axios.post('/login', { email, password });
+      const response = await axios.post('/api/auth/login', { email, password });
      
       if (response.data.error) {
         toast.error(response.data.error);
       } else {
+        // Store token in localStorage
+        if (response.data.token) {
+          localStorage.setItem('token', response.data.token);
+        }
+        
         toast.success("Login successful!");
         const role=response.data.user.role;
         if(role==="student"){
@@ -121,6 +126,7 @@ function Login() {
 
           <div className="mt-6 text-center text-sm text-gray-500">or</div>
           
+          
           <div className="mt-3">
             <button 
               onClick={() => window.location.href = 'http://localhost:3000/google'}
@@ -130,6 +136,7 @@ function Login() {
               Continue with Google
             </button>
           </div>
+          
           
           <div className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}

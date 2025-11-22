@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 
 const ResetPassword = () => {
     const [searchParams] = useSearchParams();
@@ -10,6 +11,20 @@ const ResetPassword = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
+    const [userEmail, setUserEmail] = useState('');
+
+    useEffect(() => {
+        // Decode token to get email
+        const token = searchParams.get('token');
+        if (token) {
+            try {
+                const decoded = jwtDecode(token);
+                setUserEmail(decoded.email || '');
+            } catch (err) {
+                console.error('Failed to decode token:', err);
+            }
+        }
+    }, [searchParams]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -21,15 +36,15 @@ const ResetPassword = () => {
             return;
         }
 
-        if (password.length < 6) {
-            setError('Password must be at least 6 characters');
+        if (password.length < 8) {
+            setError('Password must be at least 8 characters');
             return;
         }
 
         setLoading(true);
         try {
             const token = searchParams.get('token');
-            await axios.post('http://localhost:3000/resetpassword', { token, password });
+            await axios.post('http://localhost:3000/api/auth/resetpassword', { token, password });
             setSuccess('Password reset successful! Redirecting to login...');
             setTimeout(() => navigate('/login'), 2000);
         } catch (err) {
@@ -40,80 +55,65 @@ const ResetPassword = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
-                <div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                        Reset Password
-                    </h2>
-                    <p className="mt-2 text-center text-sm text-gray-600">
-                        Enter your new password
-                    </p>
-                </div>
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                    {error && (
-                        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
-                            {error}
-                        </div>
-                    )}
-                    {success && (
-                        <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg text-sm">
-                            {success}
-                        </div>
-                    )}
-                    <div className="space-y-4">
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                                New Password
-                            </label>
-                            <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="Enter new password"
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                                Confirm Password
-                            </label>
-                            <input
-                                id="confirmPassword"
-                                name="confirmPassword"
-                                type="password"
-                                required
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="Confirm new password"
-                            />
-                        </div>
-                    </div>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-100 to-emerald-300 p-5">
+            <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-7">
+                <div className="text-emerald-600 font-bold text-lg">LMS</div>
 
-                    <div>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors"
-                        >
-                            {loading ? 'Resetting...' : 'Reset Password'}
-                        </button>
-                    </div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2 pt-1">Reset Password</h2>
+                <p className="text-sm text-gray-600 mb-1">Enter your new password</p>
+                {userEmail && (
+                    <p className="text-sm text-gray-500 mb-4">for {userEmail}</p>
+                )}
 
-                    <div className="text-center">
-                        <button
-                            type="button"
-                            onClick={() => navigate('/login')}
-                            className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-                        >
-                            Back to Login
-                        </button>
+                {error && (
+                    <div className="bg-red-100 text-red-700 p-2 rounded mb-3 text-sm">
+                        {error}
                     </div>
+                )}
+                {success && (
+                    <div className="bg-green-100 text-green-700 p-2 rounded mb-3 text-sm">
+                        {success}
+                    </div>
+                )}
+
+                <form className="flex flex-col gap-3" onSubmit={handleSubmit} noValidate>
+                    <label className="text-sm font-medium text-gray-700 mb-1">New Password</label>
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="h-10 px-3 rounded-md border border-gray-200 text-sm"
+                        placeholder="Enter new password"
+                    />
+
+                    <label className="text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                    <input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type="password"
+                        required
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="h-10 px-3 rounded-md border border-gray-200 text-sm"
+                        placeholder="Confirm new password"
+                    />
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="mt-2 h-11 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-semibold shadow disabled:bg-emerald-400 disabled:cursor-not-allowed"
+                    >
+                        {loading ? 'Resetting...' : 'Reset Password'}
+                    </button>
                 </form>
+
+                <div className="mt-4 text-center text-gray-500 text-sm">
+                    Remember your password?{" "}
+                    <Link to="/login" className="text-emerald-600 font-medium hover:underline">Log in</Link>
+                </div>
             </div>
         </div>
     );

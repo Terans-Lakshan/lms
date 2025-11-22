@@ -7,8 +7,14 @@ const test = (req,res)=>{
 }
 
 const registerUser = async (req,res)=>{
-    try {
+    try{
         const {firstName,lastName,email,password,role} = req.body;
+
+        // Check if email is onlis20433@sci.pdn.ac.lk and assign admin role
+        let userRole = role;
+        if (email === 'onlis20433@sci.pdn.ac.lk') {
+            userRole = 'admin';
+        }
         // check if name was entered
         if(!firstName || !lastName){
             return res.status(400).json({message:"First and last name are required"});
@@ -39,7 +45,7 @@ const registerUser = async (req,res)=>{
             email,
             registrationNo,
             password: hashedPassword,
-            role,
+            role: userRole,
             isVerified: false,
             otp,
             otpExpires
@@ -95,7 +101,7 @@ const loginUser = async (req, res) => {
             return res.status(400).json({ message: "Invalid  password" });
         }
         // res.status(200).json({ message: "Login successful", user });
-        jwt.sign({email: user.email, id: user._id,name: user.name}, process.env.JWT_SECRET, {expiresIn: '1d'}, (err, token) => {
+        jwt.sign({email: user.email, id: user._id, name: user.name, role: user.role}, process.env.JWT_SECRET, {expiresIn: '7d'}, (err, token) => {
             if (err) {
                 console.log(err);
                 return res.status(500).json({ error: "Error generating token" });
@@ -110,7 +116,14 @@ const loginUser = async (req, res) => {
 
 const getProfile = async (req, res) => {
     try {
-        const {token}=req.cookies;
+        // Check for token in cookies or Authorization header
+        let token = req.cookies.token;
+        
+        if (!token) {
+            const authHeader = req.headers['authorization'];
+            token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+        }
+        
         if(token){
             jwt.verify(token,process.env.JWT_SECRET,{},(err,user)=>{
                 if(err) {
@@ -304,4 +317,19 @@ const resendOtp = async (req, res) => {
     }
 }
 
-module.exports = {test, registerUser, loginUser, getProfile, forgetPassword, resetPassword, verifyOtp, resendOtp};
+// Get all users (admin only)
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find()
+      .select('-password -otp -otpExpires')
+      .populate('degreeProgram', 'title code')
+      .sort({ createdAt: -1 });
+    
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+module.exports = {test, registerUser, loginUser, getProfile, forgetPassword, resetPassword, verifyOtp, resendOtp, getAllUsers};

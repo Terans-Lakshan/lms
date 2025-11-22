@@ -35,7 +35,7 @@ function SignupConfirmation() {
 
     setLoading(true);
     try {
-      const response = await axios.post('/verify-otp', { email, otp });
+      const response = await axios.post('/api/auth/verify-otp', { email, otp });
       
       if (response.data.error) {
         toast.error(response.data.error);

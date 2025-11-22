@@ -4,7 +4,14 @@ const CourseSchema = new mongoose.Schema({
   title: String,
   code: String,
   credit: Number,
+  degree: String,
   description: String,
+  previewImage: { type: String, required: false },
+  degreeType: { 
+    type: String, 
+    enum: ['masters', 'Ph.D.', 'M.Phil', 'post graduate diploma'],
+    required: false
+  },
   degreeProgram: { type: mongoose.Schema.Types.ObjectId, ref: "DegreeProgram" },
   resources: [{
     key: String,        // S3 object key

@@ -11,7 +11,7 @@ const ForgetPassword = () => {
     e.preventDefault();
     setMessage("");
     try {
-      const response = await axios.post('http://localhost:3000/forgetpassword', { email });
+      const response = await axios.post('http://localhost:3000/api/auth/forgetpassword', { email });
       setMessage(response.data.message || "You will receive a password reset link.");
     } catch (error) {
       setMessage(error.response?.data?.message || "Error sending reset email. Please try again.");
@@ -51,7 +51,7 @@ const ForgetPassword = () => {
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 
                        rounded-md shadow transition duration-200"
           >
-            Send Verification Code
+            Send Verification Link
           </button>
         </form>
 

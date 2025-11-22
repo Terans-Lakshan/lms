@@ -38,5 +38,6 @@ function startServer(withDb = false) {
 }
 
 // Existing routes
-app.use('/', require('./routes/authRoutes'));
-app.use('/api', require('./routes/degreeProgramRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/degree-programs', require('./routes/degreeProgramRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
