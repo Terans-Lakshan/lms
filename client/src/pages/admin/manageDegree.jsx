@@ -14,6 +14,11 @@ const ManageDegree = () => {
   const [users, setUsers] = useState([]);
   const [notifications, setNotifications] = useState([]);
 
+  // Image upload states
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+
   // Add degree form state
   const [degreeData, setDegreeData] = useState({
     title: "",
@@ -72,6 +77,82 @@ const ManageDegree = () => {
     }));
   };
 
+  const handleImageUpload = async (file) => {
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size should be less than 5MB');
+      return;
+    }
+
+    // Check if degree code is provided
+    if (!degreeData.code) {
+      toast.error('Please enter degree code first');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('degreeCode', degreeData.code);
+
+      const response = await axios.post(
+        'http://localhost:3000/api/upload/upload-degree-preview',
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      setDegreeData(prev => ({ ...prev, previewImage: response.data.url }));
+      setImagePreview(response.data.url);
+      toast.success('Image uploaded successfully! Degree and courses folders created.');
+    } catch (error) {
+      console.error('Image upload error:', error);
+      toast.error(error.response?.data?.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleImageUpload(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileInput = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleImageUpload(e.target.files[0]);
+    }
+  };
+
   const handleAddDegree = async (e) => {
     e.preventDefault();
     
@@ -89,6 +170,7 @@ const ManageDegree = () => {
         previewImage: "",
         adminNotes: ""
       });
+      setImagePreview(null);
       
       await fetchData();
     } catch (error) {
@@ -334,16 +416,84 @@ const ManageDegree = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Preview Image URL (Optional)
+                    Preview Image (Optional)
                   </label>
-                  <input
-                    type="text"
-                    name="previewImage"
-                    value={degreeData.previewImage}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                    placeholder="https://example.com/image.jpg"
-                  />
+                  
+                  {/* Drag and Drop Zone */}
+                  <div
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                    className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                      dragActive 
+                        ? 'border-teal-500 bg-teal-50' 
+                        : 'border-gray-300 hover:border-teal-400'
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileInput}
+                      className="hidden"
+                      id="image-upload"
+                      disabled={uploadingImage}
+                    />
+                    
+                    {uploadingImage ? (
+                      <div className="py-4">
+                        <svg className="animate-spin h-10 w-10 text-teal-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p className="text-sm text-gray-600">Uploading...</p>
+                      </div>
+                    ) : imagePreview ? (
+                      <div className="space-y-3">
+                        <img 
+                          src={imagePreview} 
+                          alt="Preview" 
+                          className="max-h-40 mx-auto rounded-lg shadow-md"
+                        />
+                        <div className="flex gap-2 justify-center">
+                          <label
+                            htmlFor="image-upload"
+                            className="px-4 py-2 bg-teal-500 text-white text-sm rounded-lg hover:bg-teal-600 cursor-pointer transition-colors"
+                          >
+                            Change Image
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImagePreview(null);
+                              setDegreeData(prev => ({ ...prev, previewImage: '' }));
+                            }}
+                            className="px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                          <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <div className="text-sm text-gray-600">
+                          <label
+                            htmlFor="image-upload"
+                            className="relative cursor-pointer rounded-md font-medium text-teal-600 hover:text-teal-500 focus-within:outline-none"
+                          >
+                            <span>Upload a file</span>
+                          </label>
+                          <p className="pl-1 inline">or drag and drop</p>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          PNG, JPG, GIF up to 5MB
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>

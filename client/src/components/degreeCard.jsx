@@ -4,7 +4,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import defaultDegreeImage from '../assets/degreeCard.jpg';
 
-const DegreeCard = ({ degree = {}, userRole = '', onEnrollmentSuccess, enrolledPrograms = [] }) => {
+const DegreeCard = ({ degree = {}, userRole = '', onEnrollmentSuccess, enrolledPrograms = [], onClick }) => {
   const [showLecturerModal, setShowLecturerModal] = useState(false);
   const [lecturers, setLecturers] = useState([]);
   const [loadingLecturers, setLoadingLecturers] = useState(false);
@@ -153,7 +153,10 @@ const DegreeCard = ({ degree = {}, userRole = '', onEnrollmentSuccess, enrolledP
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+      <div 
+        className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+        onClick={() => onClick && onClick(degree)}
+      >
         {/* First div - Background Image with Title */}
         <div 
           className="relative h-48 bg-cover bg-center flex items-center justify-center"
@@ -189,7 +192,10 @@ const DegreeCard = ({ degree = {}, userRole = '', onEnrollmentSuccess, enrolledP
 
           {/* Action Button */}
           <button 
-            onClick={handleButtonClick}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleButtonClick();
+            }}
             className={`w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-2 px-4 rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 transition ${isEnrolled ? 'opacity-60 cursor-not-allowed' : ''}`}
             disabled={isEnrolled}
           >

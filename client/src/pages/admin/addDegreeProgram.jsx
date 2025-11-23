@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -39,7 +40,7 @@ const AddDegreeProgram = () => {
         return;
       }
       
-      const response = await axios.get('/api/auth/profile', {
+      const response = await axios.get('http://localhost:3000/api/auth/profile', {
         headers: { Authorization: `Bearer ${token}` }
       });
       

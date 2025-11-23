@@ -75,7 +75,7 @@ const getAllDegreePrograms = async (req, res) => {
     try {
         const programs = await DegreeProgram.find()
             .populate('lecturers', 'name email')
-            .populate('courses', 'title code');
+            .populate('courses', 'title code credit description');
         res.status(200).json(programs);
     } catch (error) {
         console.log(error);

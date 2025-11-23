@@ -13,6 +13,7 @@ const LecturerMyCourses = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [showAddCourseModal, setShowAddCourseModal] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [courseData, setCourseData] = useState({
     title: "",
@@ -20,6 +21,10 @@ const LecturerMyCourses = () => {
     credit: "",
     description: ""
   });
+
+  const handleActionSuccess = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,11 +64,9 @@ const LecturerMyCourses = () => {
         console.error('Error fetching data:', err);
       }
     };
-    
-    fetchData();
-  }, []);
 
-  const handleAddCourse = (program) => {
+    fetchData();
+  }, [refreshTrigger]);  const handleAddCourse = (program) => {
     setSelectedProgram(program);
     setShowAddCourseModal(true);
   };
@@ -143,16 +146,6 @@ const LecturerMyCourses = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       )
-    },
-    {
-      type: "link",
-      href: "/lecturerDashboard/results",
-      title: "Results",
-      icon: (
-        <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      )
     }
   ];
 
@@ -226,7 +219,7 @@ const LecturerMyCourses = () => {
                     {program.courses && program.courses.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {program.courses.map((course) => (
-                          <CourseCard key={course._id} course={course} />
+                          <CourseCard key={course._id} course={course} userRole="lecturer" onActionSuccess={handleActionSuccess} />
                         ))}
                       </div>
                     ) : (

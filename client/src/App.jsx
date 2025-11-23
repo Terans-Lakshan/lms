@@ -4,11 +4,9 @@ import Signup from './pages/signup'
 import SignupConfirmation from './pages/signupConfirmation'
 import StudentDashboard from './pages/student/dashbord'
 import MyCourses from './pages/student/myCourses'
-import Results from './pages/student/results'
 import LecturerDashboard from './pages/lecturer/dashboard'
 import LecturerMyCourses from './pages/lecturer/myCourses'
 import LecturerManageCourses from './pages/lecturer/manageCourses'
-import LecturerResults from './pages/lecturer/results'
 import AdminDashboard from './pages/admin/dashboard'
 import ManageUsers from './pages/admin/manageUsers'
 import AddDegreeProgram from './pages/admin/addDegreeProgram'
@@ -36,11 +34,9 @@ function App() {
           <Route path="/signup-confirmation" element={<SignupConfirmation />} />
           <Route path="/studentDashboard" element={<StudentDashboard />} />
           <Route path="/studentDashboard/my-courses" element={<MyCourses />} />
-          <Route path="/studentDashboard/results" element={<Results />} />
           <Route path="/lecturerDashboard" element={<LecturerDashboard />} />
           <Route path="/lecturerDashboard/my-courses" element={<LecturerMyCourses />} />
           <Route path="/lecturerDashboard/manage-courses" element={<LecturerManageCourses />} />
-          <Route path="/lecturerDashboard/results" element={<LecturerResults />} />
           <Route path="/adminDashboard" element={<AdminDashboard />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/adminDashboard/manage-degree" element={<ManageDegree />} />

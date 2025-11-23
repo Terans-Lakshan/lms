@@ -1,5 +1,24 @@
-const StudentNotificationSidebar = ({ isOpen, onClose, notifications }) => {
+import axios from "axios";
+
+const StudentNotificationSidebar = ({ isOpen, onClose, notifications, onNotificationDeleted }) => {
   if (!isOpen) return null;
+
+  const handleDeleteNotification = async (notificationId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(
+        `http://localhost:3000/api/notifications/${notificationId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Call the callback to refresh notifications
+      if (onNotificationDeleted) {
+        onNotificationDeleted();
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  };
 
   return (
     <aside className={`bg-white border-l border-gray-200 p-6 overflow-auto transition-all duration-300 ${
@@ -77,9 +96,20 @@ const StudentNotificationSidebar = ({ isOpen, onClose, notifications }) => {
                         {notification.status}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-500 flex-shrink-0">
-                      {new Date(notification.createdAt).toLocaleDateString()}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 flex-shrink-0">
+                        {new Date(notification.createdAt).toLocaleDateString()}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteNotification(notification._id)}
+                        className="text-gray-400 hover:text-red-600 transition-colors"
+                        title="Delete notification"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   
                   <p className="text-sm font-semibold text-gray-900 mb-1">

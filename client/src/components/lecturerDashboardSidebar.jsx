@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import toast from "react-hot-toast";
 
 const LecturerDashboardSidebar = ({ isOpen, onClose, enrolledPrograms = [] }) => {
   const [notifications, setNotifications] = useState([]);
+  const [processing, setProcessing] = useState({});
 
   const fetchNotifications = async () => {
     try {
@@ -28,6 +30,25 @@ const LecturerDashboardSidebar = ({ isOpen, onClose, enrolledPrograms = [] }) =>
       fetchNotifications();
     } catch (error) {
       console.error('Error deleting notification:', error);
+    }
+  };
+
+  const handleCourseEnrollmentRequest = async (notificationId, action) => {
+    setProcessing(prev => ({ ...prev, [notificationId]: true }));
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        'http://localhost:3000/api/enrollments/handle-course-request',
+        { notificationId, action },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(`Enrollment request ${action}ed successfully`);
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error handling enrollment request:', error);
+      toast.error(error.response?.data?.message || `Failed to ${action} request`);
+    } finally {
+      setProcessing(prev => ({ ...prev, [notificationId]: false }));
     }
   };
 
@@ -109,7 +130,10 @@ const LecturerDashboardSidebar = ({ isOpen, onClose, enrolledPrograms = [] }) =>
                 <p className="text-sm">No notifications</p>
               </div>
             ) : (
-              notifications.map((notification) => (
+              notifications.map((notification) => {
+                const isCourseEnrollment = notification.type === 'course_enrollment_request';
+                
+                return (
                 <div 
                   key={notification._id} 
                   className={`p-4 rounded-lg border ${
@@ -140,17 +164,57 @@ const LecturerDashboardSidebar = ({ isOpen, onClose, enrolledPrograms = [] }) =>
                       </svg>
                     </button>
                   </div>
-                  <p className="text-sm text-gray-800 font-medium mb-1">
-                    {notification.degreeProgram?.title}
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    {notification.message}
-                  </p>
+                  
+                  {isCourseEnrollment && (
+                    <div className="mb-2">
+                      <p className="text-xs text-gray-500 font-medium">Course Enrollment Request</p>
+                      <p className="text-sm text-gray-800 font-semibold">
+                        {notification.course?.title} ({notification.course?.code})
+                      </p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        Student: {notification.requester?.name?.first} {notification.requester?.name?.last}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Reg No: {notification.requester?.registrationNo}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {!isCourseEnrollment && (
+                    <>
+                      <p className="text-sm text-gray-800 font-medium mb-1">
+                        {notification.degreeProgram?.title}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        {notification.message}
+                      </p>
+                    </>
+                  )}
+                  
+                  {isCourseEnrollment && notification.status === 'pending' && (
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => handleCourseEnrollmentRequest(notification._id, 'accept')}
+                        disabled={processing[notification._id]}
+                        className="flex-1 bg-green-500 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-green-600 transition disabled:opacity-50"
+                      >
+                        {processing[notification._id] ? 'Processing...' : 'Accept'}
+                      </button>
+                      <button
+                        onClick={() => handleCourseEnrollmentRequest(notification._id, 'reject')}
+                        disabled={processing[notification._id]}
+                        className="flex-1 bg-red-500 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-red-600 transition disabled:opacity-50"
+                      >
+                        {processing[notification._id] ? 'Processing...' : 'Reject'}
+                      </button>
+                    </div>
+                  )}
+                  
                   <p className="text-xs text-gray-400 mt-2">
                     {new Date(notification.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-              ))
+              )})
             )}
           </div>
         </>

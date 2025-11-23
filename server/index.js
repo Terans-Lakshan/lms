@@ -44,4 +44,5 @@ app.use('/api/courses', require('./routes/courseRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api/degree-details', require('./routes/degreeDetailsRoutes'));
+app.use('/api/enrollments', require('./routes/enrollmentRoutes'));
 

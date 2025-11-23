@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import Header from "../../components/header";
 import Sidebar from "../../components/sidebar";
 import DegreeCard from "../../components/degreeCard";
+import CourseCard from "../../components/courseCard";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -19,6 +20,14 @@ const StudentDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [notifications, setNotifications] = useState([]);
+  const [selectedDegree, setSelectedDegree] = useState(null);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [courseStatuses, setCourseStatuses] = useState({});
+
+  const handleActionSuccess = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,6 +89,39 @@ const StudentDashboard = () => {
           });
           setNotifications(notificationsRes.data);
           console.log('Notifications loaded:', notificationsRes.data.length);
+
+          // Fetch user's enrolled courses
+          const enrollmentsRes = await axios.get('/api/enrollments/my-courses', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const courseIds = enrollmentsRes.data.courses?.map(c => c.courseId._id || c.courseId) || [];
+          setEnrolledCourseIds(courseIds);
+
+          // Fetch all courses from degree programs
+          const allCourseIds = [];
+          allProgramsRes.data.forEach(program => {
+            if (program.courses) {
+              program.courses.forEach(course => {
+                allCourseIds.push(course._id);
+              });
+            }
+          });
+
+          // Fetch status for each course
+          const statuses = {};
+          await Promise.all(
+            allCourseIds.map(async (courseId) => {
+              try {
+                const statusRes = await axios.get(`/api/enrollments/course-status/${courseId}`, {
+                  headers: { Authorization: `Bearer ${token}` }
+                });
+                statuses[courseId] = statusRes.data.status;
+              } catch (err) {
+                statuses[courseId] = 'not_enrolled';
+              }
+            })
+          );
+          setCourseStatuses(statuses);
         } catch (userErr) {
           console.log('User not logged in or profile fetch failed');
         }
@@ -97,7 +139,7 @@ const StudentDashboard = () => {
     };
     
     fetchData();
-  }, []);
+  }, [refreshTrigger]);
 
   const fetchNotifications = async () => {
     try {
@@ -169,16 +211,6 @@ const StudentDashboard = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
         </svg>
       )
-    },
-    {
-      type: "link",
-      href: "/studentDashboard/results",
-      title: "Results",
-      icon: (
-        <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      )
     }
   ];
 
@@ -219,23 +251,100 @@ const StudentDashboard = () => {
 
           {activeTab === "dashboard" && (
             <>
-              <div className="flex items-center gap-4 mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Available Degree Programs</h2>
-                <div className="flex-1 max-w-md">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search degree programs..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
-                    />
-                    <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              {selectedDegree ? (
+                <div>
+                  <button
+                    onClick={() => setSelectedDegree(null)}
+                    className="mb-4 flex items-center text-teal-600 hover:text-teal-700 font-medium"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
+                    Back to Programs
+                  </button>
+                  
+                  <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <div 
+                      className="h-64 bg-cover bg-center relative"
+                      style={{
+                        backgroundImage: `url(${selectedDegree.previewImage})`,
+                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                        backgroundBlendMode: 'overlay'
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end">
+                        <div className="p-8 w-full">
+                          <h1 className="text-4xl font-bold text-white mb-2">{selectedDegree.title}</h1>
+                          <p className="text-teal-200 text-lg">Code: {selectedDegree.code}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-8">
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">Description</h3>
+                        <p className="text-gray-600 leading-relaxed">{selectedDegree.description || 'No description available'}</p>
+                      </div>
+                      
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-3">Lecturers</h3>
+                        {selectedDegree.lecturers && selectedDegree.lecturers.length > 0 ? (
+                          <div className="space-y-2">
+                            {selectedDegree.lecturers.map((lecturer, index) => (
+                              <div key={index} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                                <svg className="w-5 h-5 text-teal-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                <span className="text-gray-700">{`${lecturer.name?.first || ''} ${lecturer.name?.last || ''}`.trim()}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 italic">No lecturers assigned yet</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-3">Courses</h3>
+                        {selectedDegree.courses && selectedDegree.courses.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {selectedDegree.courses.map((course) => (
+                              <CourseCard 
+                                key={course._id} 
+                                course={course} 
+                                userRole="student" 
+                                onActionSuccess={handleActionSuccess}
+                                isEnrolled={enrolledCourseIds.includes(course._id)}
+                                enrollmentStatus={courseStatuses[course._id] || 'not_enrolled'}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 italic">No courses available yet</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-4 mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800">Available Degree Programs</h2>
+                    <div className="flex-1 max-w-md">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search degree programs..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
+                        />
+                        <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
               
               {filteredPrograms.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16">
@@ -254,10 +363,13 @@ const StudentDashboard = () => {
                       userRole="student"
                       enrolledPrograms={enrolledPrograms}
                       onEnrollmentSuccess={refreshEnrolledPrograms}
+                      onClick={setSelectedDegree}
                     />
                   ))}
                 </div>
               )}
+              </>
+            )}
             </>
           )}
         </main>
@@ -336,9 +448,20 @@ const StudentDashboard = () => {
                             {notification.status}
                           </span>
                         </div>
-                        <span className="text-xs text-gray-500">
-                          {new Date(notification.createdAt).toLocaleDateString()}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">
+                            {new Date(notification.createdAt).toLocaleDateString()}
+                          </span>
+                          <button
+                            onClick={() => deleteNotification(notification._id)}
+                            className="text-gray-400 hover:text-red-600 transition-colors"
+                            title="Delete notification"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                       
                       <p className="text-sm font-medium text-gray-900 mb-1">

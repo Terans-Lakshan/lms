@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const notificationSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['enrollment_request', 'enrollment_response', 'teach_request', 'teach_response'],
+    enum: ['enrollment_request', 'enrollment_response', 'teach_request', 'teach_response', 'course_enrollment_request', 'course_enrollment_response'],
     required: true
   },
   requester: {
@@ -18,8 +18,11 @@ const notificationSchema = new mongoose.Schema({
   },
   degreeProgram: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'DegreeProgram',
-    required: true
+    ref: 'DegreeProgram'
+  },
+  course: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Course'
   },
   status: {
     type: String,

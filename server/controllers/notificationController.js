@@ -306,6 +306,7 @@ exports.getStudentNotifications = async (req, res) => {
       requesterRole: 'student'
     })
       .populate('degreeProgram', 'title code')
+      .populate('course', 'title code')
       .sort({ createdAt: -1 });
 
     console.log('Found notifications:', notifications.length);
@@ -323,15 +324,42 @@ exports.getLecturerNotifications = async (req, res) => {
     console.log('=== getLecturerNotifications ===');
     console.log('Lecturer ID:', lecturerId);
 
-    const notifications = await Notification.find({
+    // Get lecturer's own notifications (teach requests)
+    const ownNotifications = await Notification.find({
       requester: lecturerId,
       requesterRole: 'lecturer'
     })
       .populate('degreeProgram', 'title code')
+      .populate('course', 'title code')
       .sort({ createdAt: -1 });
 
-    console.log('Found notifications:', notifications.length);
-    res.json(notifications);
+    // Get course enrollment requests for courses in degree programs the lecturer teaches
+    const DegreeUser = require('../models/degreeUser');
+    const degreeUser = await DegreeUser.findOne({ userId: lecturerId });
+    
+    let courseEnrollmentRequests = [];
+    if (degreeUser && degreeUser.degrees.length > 0) {
+      const degreeProgramIds = degreeUser.degrees.map(d => d.degreeId);
+      
+      courseEnrollmentRequests = await Notification.find({
+        type: 'course_enrollment_request',
+        degreeProgram: { $in: degreeProgramIds },
+        status: 'pending'
+      })
+        .populate('requester', 'name email registrationNo')
+        .populate('course', 'title code')
+        .populate('degreeProgram', 'title code')
+        .sort({ createdAt: -1 });
+    }
+
+    // Combine both notification types
+    const allNotifications = [...ownNotifications, ...courseEnrollmentRequests];
+    
+    // Sort by creation date
+    allNotifications.sort((a, b) => b.createdAt - a.createdAt);
+
+    console.log('Found notifications:', allNotifications.length);
+    res.json(allNotifications);
   } catch (error) {
     console.error('Error fetching lecturer notifications:', error);
     res.status(500).json({ message: 'Failed to fetch notifications' });
