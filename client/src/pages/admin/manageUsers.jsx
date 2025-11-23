@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -15,15 +15,27 @@ const ManageUsers = () => {
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
     axios.get("/api/auth/profile").then((res) => setUser(res.data));
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const applyFilter = useCallback(() => {
+    if (filter === "all") {
+      setFilteredUsers(users);
+    } else if (filter === "lecturer") {
+      setFilteredUsers(users.filter(u => u.role === "lecturer"));
+    } else {
+      setFilteredUsers(users.filter(u => u.role === filter));
+    }
+  }, [filter, users]);
 
   useEffect(() => {
     applyFilter();
-  }, [filter, users]);
+  }, [applyFilter]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -38,16 +50,6 @@ const ManageUsers = () => {
       console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const applyFilter = () => {
-    if (filter === "all") {
-      setFilteredUsers(users);
-    } else if (filter === "lecturer") {
-      setFilteredUsers(users.filter(u => u.role === "lecturer"));
-    } else {
-      setFilteredUsers(users.filter(u => u.role === filter));
     }
   };
 
@@ -152,12 +154,148 @@ const ManageUsers = () => {
             </div>
           </div>
 
-          {/* Users Table */}
+          {/* Users Content - Table or Detail View */}
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
             </div>
+          ) : selectedUser ? (
+            // User Detail View
+            <div className="bg-white rounded-lg shadow-md p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gray-800">User Details</h3>
+                <button
+                  onClick={() => setSelectedUser(null)}
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-700 font-medium transition"
+                >
+                  ← Back to List
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Personal Information */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Personal Information
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase">Full Name</label>
+                      <p className="text-gray-900 font-semibold">{selectedUser.name?.first} {selectedUser.name?.last}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase">Registration No</label>
+                      <p className="text-gray-900">{selectedUser.registrationNo || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase">Email</label>
+                      <p className="text-gray-900">{selectedUser.email}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase">Role</label>
+                      <p>
+                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          selectedUser.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                          selectedUser.role === 'lecturer' ? 'bg-blue-100 text-blue-800' :
+                          'bg-green-100 text-green-800'
+                        }`}>
+                          {selectedUser.role}
+                        </span>
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase">Verified</label>
+                      <p>
+                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          selectedUser.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {selectedUser.isVerified ? 'Verified' : 'Not Verified'}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enrollment Information */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    Enrolled Degrees
+                  </h4>
+                  {selectedUser.enrolledDegrees && selectedUser.enrolledDegrees.length > 0 ? (
+                    <div className="space-y-3">
+                      {selectedUser.enrolledDegrees.map((degree, index) => (
+                        <div key={index} className="bg-white rounded-lg p-4 border border-gray-200">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <p className="font-semibold text-gray-900">{degree.degreeTitle}</p>
+                              <p className="text-sm text-gray-600">{degree.degreeCode}</p>
+                            </div>
+                            <span className={`px-2 py-1 text-xs rounded-full font-semibold ${
+                              degree.status === 'accepted' 
+                                ? 'bg-green-100 text-green-800' 
+                                : degree.status === 'pending'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {degree.status}
+                            </span>
+                          </div>
+                          {degree.acceptedAt && (
+                            <p className="text-xs text-gray-500">
+                              Accepted on: {new Date(degree.acceptedAt).toLocaleDateString()}
+                            </p>
+                          )}
+                          {degree.acceptedBy && (
+                            <p className="text-xs text-gray-500">
+                              Accepted by: {degree.acceptedBy}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <svg className="w-16 h-16 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <p className="text-gray-500">No degree enrollments</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Account Information */}
+              <div className="bg-gray-50 rounded-lg p-6 mt-6">
+                <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Account Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase">Created At</label>
+                    <p className="text-gray-900">{selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase">Last Updated</label>
+                    <p className="text-gray-900">{selectedUser.updatedAt ? new Date(selectedUser.updatedAt).toLocaleDateString() : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase">User ID</label>
+                    <p className="text-gray-900 text-xs font-mono">{selectedUser._id}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : (
+            // Users Table
             <>
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
@@ -177,7 +315,7 @@ const ManageUsers = () => {
                     Role
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                    Degree
+                    Enrolled Degrees
                   </th>
                 </tr>
               </thead>
@@ -190,7 +328,11 @@ const ManageUsers = () => {
                   </tr>
                 ) : (
                   filteredUsers.map((u) => (
-                    <tr key={u._id} className="hover:bg-gray-50 transition-colors">
+                    <tr 
+                      key={u._id} 
+                      onClick={() => setSelectedUser(u)}
+                      className="hover:bg-teal-50 transition-colors cursor-pointer"
+                    >
                       <td className="px-6 py-4 text-sm text-gray-900">{u.registrationNo || 'N/A'}</td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">{u.name?.first} {u.name?.last}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{u.email}</td>
@@ -204,7 +346,28 @@ const ManageUsers = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {u.degreeProgram?.title || 'Not Enrolled'}
+                        {u.enrolledDegrees && u.enrolledDegrees.length > 0 ? (
+                          <div className="flex flex-col gap-1">
+                            {u.enrolledDegrees.map((degree, index) => (
+                              <div key={index} className="flex items-center gap-2">
+                                <span className={`px-2 py-1 text-xs rounded-full ${
+                                  degree.status === 'accepted' 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : degree.status === 'pending'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {degree.degreeTitle} ({degree.degreeCode})
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {degree.status}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 italic">No enrollments</span>
+                        )}
                       </td>
                     </tr>
                   ))
