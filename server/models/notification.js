@@ -3,12 +3,17 @@ const mongoose = require('mongoose');
 const notificationSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['enrollment_request', 'enrollment_response'],
+    enum: ['enrollment_request', 'enrollment_response', 'teach_request', 'teach_response'],
     required: true
   },
-  student: {
+  requester: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
+    required: true
+  },
+  requesterRole: {
+    type: String,
+    enum: ['student', 'lecturer', 'admin'],
     required: true
   },
   degreeProgram: {

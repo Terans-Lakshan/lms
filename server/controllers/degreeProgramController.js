@@ -2,6 +2,7 @@ const DegreeProgram = require('../models/degreeProgramme.js');
 const Enrollment = require('../models/enrollment.js');
 const Course = require('../models/course.js');
 const User = require('../models/user.js');
+const DegreeUser = require('../models/degreeUser.js');
 
 const createDegreeProgram = async (req, res) => {
     try {
@@ -132,27 +133,38 @@ const updateEnrollmentStatus = async (req, res) => {
 
 const getMyEnrolledPrograms = async (req, res) => {
     try {
-        const { studentId } = req.query;
+        const userId = req.user.id;
+        console.log('=== getMyEnrolledPrograms ===');
+        console.log('User ID from token:', userId);
 
-        const enrolledPrograms = await Enrollment.find({ 
-            student: studentId, 
-            status: 'active' 
-        })
+        // Find the DegreeUser document for this user
+        const degreeUser = await DegreeUser.findOne({ userId })
             .populate({
-                path: 'degreeProgram',
+                path: 'degrees.degreeId',
                 populate: [{
                     path: 'courses',
-                    select: 'title code credit'
+                    select: 'title code credit description'
                 }, {
                     path: 'lecturers',
                     select: 'name email'
                 }]
-            })
-            .sort({ createdAt: -1 });
+            });
         
-        res.status(200).json(enrolledPrograms);
+        if (!degreeUser || !degreeUser.degrees || degreeUser.degrees.length === 0) {
+            console.log('No enrolled programs found');
+            return res.status(200).json([]);
+        }
+
+        console.log('Found degrees:', degreeUser.degrees.length);
+        
+        // Filter only active degrees and return the populated degree programs
+        const activePrograms = degreeUser.degrees
+            .filter(degree => degree.status === 'active')
+            .map(degree => degree.degreeId);
+        
+        res.status(200).json(activePrograms);
     } catch (error) {
-        console.log(error);
+        console.error('Error fetching enrolled programs:', error);
         res.status(500).json({ error: "Server error fetching enrolled programs" });
     }
 }

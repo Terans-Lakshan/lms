@@ -13,30 +13,38 @@ const MyCourses = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const userRes = await axios.get("/api/users/me");
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.log('No token found');
+          return;
+        }
+
+        const userRes = await axios.get("/api/auth/profile", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setUser(userRes.data);
         
-        // Fetch enrolled programs and extract courses
-        if (userRes.data.id) {
-          const programsRes = await axios.get(`/api/enrollments/my-programs?studentId=${userRes.data.id}`);
-          
-          // Extract all courses from enrolled programs
-          const allCourses = [];
-          programsRes.data.forEach(enrollment => {
-            if (enrollment.degreeProgram?.courses) {
-              enrollment.degreeProgram.courses.forEach(course => {
-                allCourses.push({
-                  ...course,
-                  programName: enrollment.degreeProgram.title,
-                  programCode: enrollment.degreeProgram.code
-                });
+        // Fetch enrolled programs
+        const programsRes = await axios.get('/api/degree-programs/my-enrollments', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        // Extract all courses from enrolled programs
+        const allCourses = [];
+        programsRes.data.forEach(program => {
+          if (program.courses) {
+            program.courses.forEach(course => {
+              allCourses.push({
+                ...course,
+                programName: program.title,
+                programCode: program.code
               });
-            }
-          });
-          setEnrolledCourses(allCourses);
-        }
+            });
+          }
+        });
+        setEnrolledCourses(allCourses);
       } catch (err) {
-        console.log(err);
+        console.error('Error fetching data:', err);
       }
     };
     

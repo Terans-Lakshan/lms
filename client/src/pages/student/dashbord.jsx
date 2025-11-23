@@ -67,9 +67,19 @@ const StudentDashboard = () => {
           
           // Fetch enrolled programs for this student
           if (userRes.data.id) {
-            const programsRes = await axios.get(`/api/degree-programs/enrollments/my-programs?studentId=${userRes.data.id}`);
+            const programsRes = await axios.get('/api/degree-programs/my-enrollments', {
+              headers: { Authorization: `Bearer ${token}` }
+            });
             setEnrolledPrograms(programsRes.data);
+            console.log('Enrolled programs loaded:', programsRes.data.length);
           }
+          
+          // Fetch notifications for this student
+          const notificationsRes = await axios.get('http://localhost:3000/api/notifications/student', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setNotifications(notificationsRes.data);
+          console.log('Notifications loaded:', notificationsRes.data.length);
         } catch (userErr) {
           console.log('User not logged in or profile fetch failed');
         }
@@ -104,17 +114,16 @@ const StudentDashboard = () => {
     }
   };
 
-  const markNotificationAsRead = async (notificationId) => {
+  const deleteNotification = async (notificationId) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.patch(
-        `http://localhost:3000/api/notifications/${notificationId}/read`,
-        {},
+      await axios.delete(
+        `http://localhost:3000/api/notifications/${notificationId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      fetchNotifications(); // Refresh to show updated read status
+      fetchNotifications(); // Refresh to show updated list
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('Error deleting notification:', error);
     }
   };
 
@@ -334,14 +343,12 @@ const StudentDashboard = () => {
                           }`}>
                             {isPending ? 'Pending Request' : isAccepted ? 'Accepted' : 'Rejected'}
                           </span>
-                          {!notification.isRead && (
-                            <button
-                              onClick={() => markNotificationAsRead(notification._id)}
-                              className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-                            >
-                              Mark as read
-                            </button>
-                          )}
+                          <button
+                            onClick={() => deleteNotification(notification._id)}
+                            className="text-xs text-red-600 hover:text-red-700 font-medium"
+                          >
+                            Delete
+                          </button>
                         </div>
                         
                         <p className="text-gray-800 font-medium mb-1">

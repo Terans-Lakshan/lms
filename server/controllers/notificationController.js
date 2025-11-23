@@ -2,223 +2,356 @@ const Notification = require('../models/notification');
 const Enrollment = require('../models/enrollment');
 const User = require('../models/user');
 const DegreeProgram = require('../models/degreeProgramme');
+const DegreeUser = require('../models/degreeUser');
 
+// Get all notifications for admin (enrollment and teach requests)
 exports.getAdminNotifications = async (req, res) => {
   try {
-    console.log('=== GET ADMIN NOTIFICATIONS ===');
+    console.log('=== getAdminNotifications called ===');
     console.log('User from token:', req.user);
-    
-    const notifications = await Notification.find({ status: 'pending' })
-      .populate('student', 'name registrationNo email')
+
+    const notifications = await Notification.find({
+      type: { $in: ['enrollment_request', 'teach_request'] }
+    })
+      .populate('requester', 'name email registrationNo')
       .populate('degreeProgram', 'title code')
       .sort({ createdAt: -1 });
 
     console.log('Found notifications:', notifications.length);
-    console.log('Notifications:', JSON.stringify(notifications, null, 2));
-
     res.json(notifications);
   } catch (error) {
-    console.error('Error fetching notifications:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error fetching admin notifications:', error);
+    res.status(500).json({ message: 'Failed to fetch notifications' });
   }
 };
 
+// Handle enrollment or teach request (accept/reject)
 exports.handleEnrollmentRequest = async (req, res) => {
   try {
-    console.log('=== HANDLE ENROLLMENT REQUEST ===');
-    console.log('Request body:', req.body);
-    const { notificationId, action } = req.body; // action: 'accept' or 'reject'
+    const { notificationId, action } = req.body;
+    console.log('=== handleRequest ===');
+    console.log('Notification ID:', notificationId);
+    console.log('Action:', action);
+    console.log('Admin user:', req.user);
+
+    if (!['accept', 'reject'].includes(action)) {
+      return res.status(400).json({ message: 'Invalid action' });
+    }
 
     const notification = await Notification.findById(notificationId)
-      .populate('student', 'name registrationNo email')
+      .populate('requester', 'name email registrationNo')
       .populate('degreeProgram', 'title code');
-
-    console.log('Notification found:', notification);
 
     if (!notification) {
       return res.status(404).json({ message: 'Notification not found' });
     }
 
-    console.log('Current notification status:', notification.status);
     if (notification.status !== 'pending') {
       return res.status(400).json({ message: 'Request already processed' });
     }
 
-    // Update notification status
+    // Update the original notification
     notification.status = action === 'accept' ? 'accepted' : 'rejected';
-    notification.respondedAt = new Date();
     notification.respondedBy = req.user.id;
-    notification.isRead = true;
+    notification.respondedAt = new Date();
     await notification.save();
-    console.log('Notification updated to:', notification.status);
 
-    if (action === 'accept') {
-      console.log('Processing ACCEPT action...');
-      // Create or update enrollment
-      let enrollment = await Enrollment.findOne({
-        student: notification.student._id,
-        degreeProgram: notification.degreeProgram._id
-      });
-
-      console.log('Existing enrollment:', enrollment);
-
-      if (enrollment) {
-        enrollment.status = 'active';
-        await enrollment.save();
-        console.log('Enrollment updated to active');
-      } else {
-        enrollment = new Enrollment({
-          student: notification.student._id,
+    // Handle based on request type
+    if (notification.type === 'enrollment_request') {
+      // If accepted, create enrollment and update DegreeUser
+      if (action === 'accept') {
+        const enrollment = new Enrollment({
+          student: notification.requester._id,
           degreeProgram: notification.degreeProgram._id,
           status: 'active'
         });
         await enrollment.save();
-        console.log('New enrollment created:', enrollment);
+        console.log('Enrollment created:', enrollment);
+        
+        // Update or create DegreeUser document
+        let degreeUser = await DegreeUser.findOne({ userId: notification.requester._id });
+        
+        if (!degreeUser) {
+          // Create new DegreeUser
+          degreeUser = new DegreeUser({
+            userId: notification.requester._id,
+            userName: notification.requester.name,
+            userEmail: notification.requester.email,
+            userRole: 'student',
+            degrees: [{
+              degreeId: notification.degreeProgram._id,
+              degreeTitle: notification.degreeProgram.title,
+              degreeCode: notification.degreeProgram.code,
+              acceptedBy: req.user.id,
+              status: 'active'
+            }]
+          });
+        } else {
+          // Add degree to existing DegreeUser if not already present
+          const degreeExists = degreeUser.degrees.some(
+            deg => deg.degreeId.toString() === notification.degreeProgram._id.toString()
+          );
+          
+          if (!degreeExists) {
+            degreeUser.degrees.push({
+              degreeId: notification.degreeProgram._id,
+              degreeTitle: notification.degreeProgram.title,
+              degreeCode: notification.degreeProgram.code,
+              acceptedBy: req.user.id,
+              status: 'active'
+            });
+          }
+        }
+        
+        await degreeUser.save();
+        console.log('DegreeUser updated:', degreeUser);
+        
+        // Update notification message
+        notification.message = `Your enrollment request for ${notification.degreeProgram.title} has been accepted!`;
+      } else {
+        // Update notification message for rejection
+        notification.message = `Your enrollment request for ${notification.degreeProgram.title} has been rejected.`;
       }
 
-      // Create acceptance notification for student
-      const studentNotification = new Notification({
-        type: 'enrollment_response',
-        student: notification.student._id,
-        degreeProgram: notification.degreeProgram._id,
-        status: 'accepted',
-        message: `Your enrollment request for ${notification.degreeProgram.title} has been accepted.`,
-        isRead: false
-      });
-      await studentNotification.save();
-      console.log('Student notification created:', studentNotification);
-
-      res.json({ 
-        message: 'Enrollment request accepted',
-        enrollment,
-        notification
-      });
-    } else {
-      console.log('Processing REJECT action...');
-      // Create rejection notification for student
-      const studentNotification = new Notification({
-        type: 'enrollment_response',
-        student: notification.student._id,
-        degreeProgram: notification.degreeProgram._id,
-        status: 'rejected',
-        message: `Your enrollment request for ${notification.degreeProgram.title} has been rejected.`,
-        isRead: false
-      });
-      await studentNotification.save();
-      console.log('Student rejection notification created:', studentNotification);
-
-      res.json({ 
-        message: 'Enrollment request rejected',
-        notification
-      });
+    } else if (notification.type === 'teach_request') {
+      // If accepted, add lecturer to degree program and update DegreeUser
+      if (action === 'accept') {
+        const degreeProgram = await DegreeProgram.findById(notification.degreeProgram._id);
+        if (degreeProgram && !degreeProgram.lecturers.includes(notification.requester._id)) {
+          degreeProgram.lecturers.push(notification.requester._id);
+          await degreeProgram.save();
+          console.log('Lecturer added to degree program:', degreeProgram);
+        }
+        
+        // Update or create DegreeUser document for lecturer
+        let degreeUser = await DegreeUser.findOne({ userId: notification.requester._id });
+        
+        if (!degreeUser) {
+          // Create new DegreeUser for lecturer
+          degreeUser = new DegreeUser({
+            userId: notification.requester._id,
+            userName: notification.requester.name,
+            userEmail: notification.requester.email,
+            userRole: 'lecturer',
+            degrees: [{
+              degreeId: notification.degreeProgram._id,
+              degreeTitle: notification.degreeProgram.title,
+              degreeCode: notification.degreeProgram.code,
+              acceptedBy: req.user.id,
+              status: 'active'
+            }]
+          });
+        } else {
+          // Add degree to existing DegreeUser if not already present
+          const degreeExists = degreeUser.degrees.some(
+            deg => deg.degreeId.toString() === notification.degreeProgram._id.toString()
+          );
+          
+          if (!degreeExists) {
+            degreeUser.degrees.push({
+              degreeId: notification.degreeProgram._id,
+              degreeTitle: notification.degreeProgram.title,
+              degreeCode: notification.degreeProgram.code,
+              acceptedBy: req.user.id,
+              status: 'active'
+            });
+          }
+        }
+        
+        await degreeUser.save();
+        console.log('DegreeUser updated for lecturer:', degreeUser);
+        
+        // Update notification message
+        notification.message = `Your teach request for ${notification.degreeProgram.title} has been accepted!`;
+      } else {
+        // Update notification message for rejection
+        notification.message = `Your teach request for ${notification.degreeProgram.title} has been rejected.`;
+      }
     }
+
+    res.json({ 
+      message: `Request ${action}ed successfully`,
+      notification 
+    });
   } catch (error) {
-    console.error('Error handling enrollment request:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error handling request:', error);
+    res.status(500).json({ message: 'Failed to process request' });
   }
 };
 
+// Create enrollment request (student)
 exports.createEnrollmentRequest = async (req, res) => {
   try {
-    console.log('=== CREATE ENROLLMENT REQUEST ===');
-    console.log('User from token:', req.user);
-    console.log('Request body:', req.body);
-    
     const { degreeProgramId } = req.body;
     const studentId = req.user.id;
 
+    console.log('=== createEnrollmentRequest ===');
     console.log('Student ID:', studentId);
     console.log('Degree Program ID:', degreeProgramId);
 
-    // Check if already enrolled or has pending request
+    // Check if request already exists
+    const existingRequest = await Notification.findOne({
+      requester: studentId,
+      degreeProgram: degreeProgramId,
+      type: 'enrollment_request',
+      status: 'pending'
+    });
+
+    if (existingRequest) {
+      return res.status(400).json({ 
+        message: 'You already have a pending enrollment request for this program' 
+      });
+    }
+
+    // Check if already enrolled
     const existingEnrollment = await Enrollment.findOne({
       student: studentId,
-      degreeProgram: degreeProgramId
+      degreeProgram: degreeProgramId,
+      status: 'active'
     });
 
     if (existingEnrollment) {
-      console.log('Already enrolled');
-      return res.status(400).json({ message: 'Already enrolled in this program' });
+      return res.status(400).json({ 
+        message: 'You are already enrolled in this program' 
+      });
     }
 
-    const existingNotification = await Notification.findOne({
-      student: studentId,
-      degreeProgram: degreeProgramId,
-      status: 'pending'
-    });
-
-    if (existingNotification) {
-      console.log('Pending request already exists');
-      return res.status(400).json({ message: 'Enrollment request already pending' });
-    }
-
-    // Create notification
+    // Create single notification (visible to both admin and student)
     const notification = new Notification({
       type: 'enrollment_request',
-      student: studentId,
+      requester: studentId,
+      requesterRole: 'student',
       degreeProgram: degreeProgramId,
-      status: 'pending'
+      status: 'pending',
+      message: 'Your enrollment request is pending admin approval.'
     });
-
     await notification.save();
-    console.log('Notification created:', notification._id);
 
-    const populatedNotification = await Notification.findById(notification._id)
-      .populate('student', 'name registrationNo email')
-      .populate('degreeProgram', 'title code');
+    console.log('Enrollment request created:', notification._id);
 
-    console.log('Populated notification:', populatedNotification);
-
-    res.status(201).json({ 
-      message: 'Enrollment request submitted successfully',
-      notification: populatedNotification
+    res.status(201).json({
+      message: 'Enrollment request sent successfully',
+      notification
     });
   } catch (error) {
     console.error('Error creating enrollment request:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Failed to send enrollment request' });
   }
 };
 
-// Get student notifications (enrollment requests and responses)
+// Create teach request (lecturer)
+exports.createTeachRequest = async (req, res) => {
+  try {
+    const { degreeProgramId } = req.body;
+    const lecturerId = req.user.id;
+
+    console.log('=== createTeachRequest ===');
+    console.log('Lecturer ID:', lecturerId);
+    console.log('Degree Program ID:', degreeProgramId);
+
+    // Check if request already exists
+    const existingRequest = await Notification.findOne({
+      requester: lecturerId,
+      degreeProgram: degreeProgramId,
+      type: 'teach_request',
+      status: 'pending'
+    });
+
+    if (existingRequest) {
+      return res.status(400).json({ 
+        message: 'You already have a pending teach request for this program' 
+      });
+    }
+
+    // Check if already teaching
+    const degreeProgram = await DegreeProgram.findById(degreeProgramId);
+    if (degreeProgram && degreeProgram.lecturers.includes(lecturerId)) {
+      return res.status(400).json({ 
+        message: 'You are already teaching this program' 
+      });
+    }
+
+    // Create single notification (visible to both admin and lecturer)
+    const notification = new Notification({
+      type: 'teach_request',
+      requester: lecturerId,
+      requesterRole: 'lecturer',
+      degreeProgram: degreeProgramId,
+      status: 'pending',
+      message: 'Your teach request is pending admin approval.'
+    });
+    await notification.save();
+
+    console.log('Teach request created:', notification._id);
+
+    res.status(201).json({
+      message: 'Teach request sent successfully',
+      notification
+    });
+  } catch (error) {
+    console.error('Error creating teach request:', error);
+    res.status(500).json({ message: 'Failed to send teach request' });
+  }
+};
+
+// Get student notifications
 exports.getStudentNotifications = async (req, res) => {
   try {
     const studentId = req.user.id;
-    
-    const notifications = await Notification.find({ 
-      student: studentId,
-      $or: [
-        { type: 'enrollment_response' },
-        { type: 'enrollment_request' }
-      ]
+    console.log('=== getStudentNotifications ===');
+    console.log('Student ID:', studentId);
+
+    const notifications = await Notification.find({
+      requester: studentId,
+      requesterRole: 'student'
     })
       .populate('degreeProgram', 'title code')
       .sort({ createdAt: -1 });
 
+    console.log('Found notifications:', notifications.length);
     res.json(notifications);
   } catch (error) {
     console.error('Error fetching student notifications:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Failed to fetch notifications' });
   }
 };
 
-// Mark notification as read
-exports.markNotificationAsRead = async (req, res) => {
+// Get lecturer notifications
+exports.getLecturerNotifications = async (req, res) => {
   try {
-    const { notificationId } = req.params;
+    const lecturerId = req.user.id;
+    console.log('=== getLecturerNotifications ===');
+    console.log('Lecturer ID:', lecturerId);
+
+    const notifications = await Notification.find({
+      requester: lecturerId,
+      requesterRole: 'lecturer'
+    })
+      .populate('degreeProgram', 'title code')
+      .sort({ createdAt: -1 });
+
+    console.log('Found notifications:', notifications.length);
+    res.json(notifications);
+  } catch (error) {
+    console.error('Error fetching lecturer notifications:', error);
+    res.status(500).json({ message: 'Failed to fetch notifications' });
+  }
+};
+
+// Delete notification
+exports.deleteNotification = async (req, res) => {
+  try {
+    const { id } = req.params;
     
-    const notification = await Notification.findByIdAndUpdate(
-      notificationId,
-      { isRead: true },
-      { new: true }
-    );
+    const notification = await Notification.findByIdAndDelete(id);
 
     if (!notification) {
       return res.status(404).json({ message: 'Notification not found' });
     }
 
-    res.json({ message: 'Notification marked as read', notification });
+    res.json({ message: 'Notification deleted successfully' });
   } catch (error) {
-    console.error('Error marking notification as read:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error deleting notification:', error);
+    res.status(500).json({ message: 'Failed to delete notification' });
   }
 };

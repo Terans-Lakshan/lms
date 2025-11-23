@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const cors = require('cors');
+const { authenticateToken } = require('../middlewares/auth');
 const {
     createDegreeProgram,
     getAllDegreePrograms,
@@ -20,6 +21,7 @@ router.get('/', getAllDegreePrograms);
 router.post('/enroll', enrollInProgram);
 router.get('/enrollments/pending', getPendingEnrollments);
 router.post('/enrollments/update', updateEnrollmentStatus);
-router.get('/enrollments/my-programs', getMyEnrolledPrograms);
+router.get('/enrollments/my-programs', authenticateToken, getMyEnrolledPrograms);
+router.get('/my-enrollments', authenticateToken, getMyEnrolledPrograms);
 
 module.exports = router;

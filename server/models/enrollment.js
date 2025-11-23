@@ -6,8 +6,8 @@ const enrollmentSchema = new Schema({
     degreeProgram: { type: mongoose.Schema.Types.ObjectId, ref: 'DegreeProgram', required: true },
     status: { 
         type: String, 
-        enum: ['pending', 'approved', 'rejected'], 
-        default: 'pending' 
+        enum: ['pending', 'active', 'approved', 'rejected', 'inactive', 'completed'], 
+        default: 'active' 
     },
     requestedAt: { type: Date, default: Date.now },
     processedAt: { type: Date },

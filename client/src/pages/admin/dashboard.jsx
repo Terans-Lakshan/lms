@@ -47,6 +47,8 @@ const AdminDashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       console.log('Admin Dashboard - User data received:', response.data);
+      console.log('User role:', response.data.role);
+      console.log('Is admin?', response.data.role === 'admin');
       
       // Check if user has admin role
       if (response.data.role !== 'admin') {

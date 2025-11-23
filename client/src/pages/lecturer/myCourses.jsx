@@ -11,8 +11,44 @@ const LecturerMyCourses = () => {
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
 
   useEffect(() => {
-    axios.get("/api/users/me").then(res => setUser(res.data));
-    axios.get("/api/courses?lecturerId=me").then(res => setCourses(res.data));
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.log('No token found');
+          return;
+        }
+
+        const userRes = await axios.get("/api/auth/profile", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setUser(userRes.data);
+        
+        // Fetch enrolled programs from DegreeUser
+        const programsRes = await axios.get('/api/degree-programs/my-enrollments', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        // Extract all courses from enrolled programs
+        const allCourses = [];
+        programsRes.data.forEach(program => {
+          if (program.courses) {
+            program.courses.forEach(course => {
+              allCourses.push({
+                ...course,
+                programName: program.title,
+                programCode: program.code
+              });
+            });
+          }
+        });
+        setCourses(allCourses);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+      }
+    };
+    
+    fetchData();
   }, []);
 
   const navItems = [

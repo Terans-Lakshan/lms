@@ -33,7 +33,7 @@ const RequestNotification = ({ notification, onAccept, onReject }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
           <span className="text-sm font-medium text-gray-700">
-            {notification.student?.name?.first} {notification.student?.name?.last}
+            {notification.requester?.name?.first} {notification.requester?.name?.last}
           </span>
         </div>
         
@@ -42,7 +42,7 @@ const RequestNotification = ({ notification, onAccept, onReject }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
           </svg>
           <span className="text-sm text-gray-600">
-            <span className="font-medium">Registration No:</span> {notification.student?.registrationNo}
+            <span className="font-medium">{isStudentRequest ? 'Registration No:' : 'Email:'}</span> {isStudentRequest ? notification.requester?.registrationNo : notification.requester?.email}
           </span>
         </div>
 

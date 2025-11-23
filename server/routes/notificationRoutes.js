@@ -4,24 +4,26 @@ const {
   getAdminNotifications,
   handleEnrollmentRequest,
   createEnrollmentRequest,
+  createTeachRequest,
   getStudentNotifications,
-  markNotificationAsRead
+  getLecturerNotifications,
+  deleteNotification
 } = require('../controllers/notificationController');
 const { authenticateToken, isAdmin } = require('../middlewares/auth');
 
-// Student creates enrollment request (requires authentication)
+// Student routes
 router.post('/enrollment-request', authenticateToken, createEnrollmentRequest);
-
-// Student gets their notifications (requires authentication)
 router.get('/student', authenticateToken, getStudentNotifications);
 
-// Mark notification as read
-router.patch('/:notificationId/read', authenticateToken, markNotificationAsRead);
+// Lecturer routes
+router.post('/teach-request', authenticateToken, createTeachRequest);
+router.get('/lecturer', authenticateToken, getLecturerNotifications);
 
-// Admin gets notifications (requires authentication and admin role)
+// Delete notification (both student and lecturer)
+router.delete('/:id', authenticateToken, deleteNotification);
+
+// Admin routes
 router.get('/admin', authenticateToken, isAdmin, getAdminNotifications);
-
-// Admin handles enrollment request (requires authentication and admin role)
 router.post('/handle-request', authenticateToken, isAdmin, handleEnrollmentRequest);
 
 module.exports = router;
