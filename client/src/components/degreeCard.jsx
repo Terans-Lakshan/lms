@@ -1,13 +1,19 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import defaultDegreeImage from '../assets/degreeCard.jpg';
 
-const DegreeCard = ({ degree = {}, userRole = '', onEnrollmentSuccess }) => {
+const DegreeCard = ({ degree = {}, userRole = '', onEnrollmentSuccess, enrolledPrograms = [] }) => {
   const [showLecturerModal, setShowLecturerModal] = useState(false);
   const [lecturers, setLecturers] = useState([]);
   const [loadingLecturers, setLoadingLecturers] = useState(false);
   const [assigningLecturer, setAssigningLecturer] = useState(false);
+
+  // Check if this degree is already enrolled by the student
+  const isEnrolled = userRole === 'student' && enrolledPrograms && enrolledPrograms.some(
+    (enroll) => enroll.degreeProgram && (enroll.degreeProgram._id === degree._id || enroll.degreeProgram === degree._id)
+  );
 
   const fetchLecturers = async () => {
     setLoadingLecturers(true);
@@ -54,7 +60,7 @@ const DegreeCard = ({ degree = {}, userRole = '', onEnrollmentSuccess }) => {
   const getButtonText = () => {
     switch (userRole) {
       case 'student':
-        return 'Enroll';
+        return isEnrolled ? 'Enrolled' : 'Enroll';
       case 'lecturer':
         return 'Teach';
       case 'admin':
@@ -66,6 +72,10 @@ const DegreeCard = ({ degree = {}, userRole = '', onEnrollmentSuccess }) => {
 
   const handleButtonClick = async () => {
     if (userRole === 'student') {
+      if (isEnrolled) {
+        toast.success('You are already enrolled in this program.');
+        return;
+      }
       // Send enrollment request to admin
       try {
         const token = localStorage.getItem('token');
@@ -99,7 +109,33 @@ const DegreeCard = ({ degree = {}, userRole = '', onEnrollmentSuccess }) => {
         toast.error(message);
       }
     } else if (userRole === 'lecturer') {
-      toast.info('Teach functionality coming soon');
+      // Send teach request to admin
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          toast.error('Please login to request teaching');
+          return;
+        }
+
+        console.log('Sending teach request for degree:', degree._id);
+
+        await axios.post(
+          'http://localhost:3000/api/notifications/teach-request',
+          { degreeProgramId: degree._id },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        toast.success('Teach request sent to admin!');
+        
+        // Trigger refresh if callback provided
+        if (onEnrollmentSuccess) {
+          onEnrollmentSuccess();
+        }
+      } catch (error) {
+        console.error('Teach request error:', error);
+        const message = error.response?.data?.message || 'Failed to send teach request';
+        toast.error(message);
+      }
     } else if (userRole === 'admin') {
       setShowLecturerModal(true);
       fetchLecturers();
@@ -154,7 +190,8 @@ const DegreeCard = ({ degree = {}, userRole = '', onEnrollmentSuccess }) => {
           {/* Action Button */}
           <button 
             onClick={handleButtonClick}
-            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-2 px-4 rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 transition"
+            className={`w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-2 px-4 rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 transition ${isEnrolled ? 'opacity-60 cursor-not-allowed' : ''}`}
+            disabled={isEnrolled}
           >
             {getButtonText()}
           </button>

@@ -5,8 +5,8 @@ const RequestNotification = ({ notification, onAccept, onReject }) => {
   const requestType = isStudentRequest ? 'Student Request' : 'Lecturer Request';
   
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow mb-3">
-      {/* Request Type Badge */}
+    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow mb-3 relative">
+      {/* Request Type Badge + Delete Button */}
       <div className="flex items-start justify-between mb-3">
         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
           isStudentRequest 
@@ -15,6 +15,15 @@ const RequestNotification = ({ notification, onAccept, onReject }) => {
         }`}>
           {requestType}
         </span>
+        <button
+          onClick={() => notification.onDelete && notification.onDelete(notification._id)}
+          className="ml-2 p-1 rounded hover:bg-red-100 text-red-600"
+          title="Delete Notification"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
         <span className={`text-xs font-semibold px-2 py-1 rounded ${
           notification.status === 'accepted' 
             ? 'bg-green-100 text-green-700' 

@@ -28,6 +28,7 @@ const AddDegreeProgram = () => {
   useEffect(() => {
     fetchUser();
     fetchNotifications();
+    fetchUsers();
   }, []);
 
   const fetchUser = async () => {
@@ -451,7 +452,7 @@ const AddDegreeProgram = () => {
           </div>
         </main>
 
-        {/* Right Sidebar - Notification Panel */}
+        {/* Right Sidebar - Notifications */}
         <aside className={`bg-white border-l border-gray-200 p-6 overflow-auto transition-all duration-300 ${
           rightSidebarOpen ? "w-96" : "w-0 p-0 overflow-hidden"
         }`}>
@@ -475,6 +476,22 @@ const AddDegreeProgram = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
+              </div>
+
+              {/* User Statistics */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="bg-teal-50 p-3 rounded-lg text-center">
+                  <p className="text-xs font-medium text-teal-600">Total</p>
+                  <p className="text-xl font-bold text-teal-700">{users.length}</p>
+                </div>
+                <div className="bg-green-50 p-3 rounded-lg text-center">
+                  <p className="text-xs font-medium text-green-600">Students</p>
+                  <p className="text-xl font-bold text-green-700">{users.filter(u => u.role === 'student').length}</p>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg text-center">
+                  <p className="text-xs font-medium text-blue-600">Lecturers</p>
+                  <p className="text-xl font-bold text-blue-700">{users.filter(u => u.role === 'lecturer').length}</p>
+                </div>
               </div>
 
               {notifications.length === 0 ? (

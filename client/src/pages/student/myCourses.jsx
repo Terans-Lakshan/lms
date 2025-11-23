@@ -1,11 +1,16 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import axios from "axios";
 import Header from "../../components/header";
 import Sidebar from "../../components/sidebar";
+import DegreeCard from "../../components/degreeCard";
+import CourseCard from "../../components/courseCard";
 
 const MyCourses = () => {
   const [activeTab, setActiveTab] = useState("my-courses");
+  const [enrolledPrograms, setEnrolledPrograms] = useState([]);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
   const [user, setUser] = useState({});
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
@@ -29,10 +34,13 @@ const MyCourses = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         
+        setEnrolledPrograms(programsRes.data);
+        
         // Extract all courses from enrolled programs
         const allCourses = [];
-        programsRes.data.forEach(program => {
-          if (program.courses) {
+        programsRes.data.forEach(enrollment => {
+          const program = enrollment.degreeProgram;
+          if (program && program.courses) {
             program.courses.forEach(course => {
               allCourses.push({
                 ...course,
@@ -100,58 +108,58 @@ const MyCourses = () => {
           navItems={navItems} 
         />
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-auto p-8 relative">
-          {!rightSidebarOpen && (
-            <button
-              onClick={() => setRightSidebarOpen(true)}
-              className="fixed right-4 top-24 bg-teal-500 text-white p-2 rounded-lg shadow-lg hover:bg-teal-600 z-10"
-              title="Show Notifications"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-            </button>
-          )}
-          
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">My Courses</h2>
-          
-          {enrolledCourses.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <svg className="w-24 h-24 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-              <p className="text-gray-600 text-lg font-medium mb-2">No Enrolled Courses</p>
-              <p className="text-gray-500 text-sm">You need to enroll in a degree program first</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {enrolledCourses.map((course) => (
-                <div
-                  key={course._id}
-                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-                >
-                  <div className="relative h-40 bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center">
-                    <div className="text-center text-white">
-                      <h3 className="text-xl font-bold">{course.code}</h3>
-                      <p className="text-xs mt-1 opacity-90">{course.programCode}</p>
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-gray-800 mb-1 text-lg">
-                      {course.title}
-                    </h3>
-                    <p className="text-gray-500 text-sm mb-2">{course.programName}</p>
-                    <p className="text-xs text-gray-600 mb-4">Credits: {course.credit || 0}</p>
-                    <button className="w-full bg-teal-500 text-white py-2 rounded-lg hover:bg-teal-600">
-                      View Course
-                    </button>
-                  </div>
+
+
+
+
+
+
+            {/* Main Content */}
+            <main className="flex-1 overflow-auto p-8 relative">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">My Courses</h2>
+              
+              {enrolledPrograms.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <svg className="w-24 h-24 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  <p className="text-gray-600 text-lg font-medium mb-2">No enrolled degree programs</p>
+                  <p className="text-gray-500 text-sm">Enroll in a degree program to see your courses here</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </main>
+              ) : (
+                <div className="space-y-8">
+                  {enrolledPrograms.map((enrollment) => {
+                    const program = enrollment.degreeProgram;
+                    if (!program) return null;
+                    
+                    return (
+                      <div key={enrollment._id} className="bg-white rounded-lg shadow-md p-6">
+                        <div className="mb-6">
+                          <h3 className="text-xl font-bold text-gray-800 mb-2">
+                            {program.title}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            Course Code: <span className="font-medium text-gray-800">{program.code}</span>
+                          </p>
+                        </div>
+                        
+                        {program.courses && program.courses.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {program.courses.map((course) => (
+                              <CourseCard key={course._id} course={course} />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-gray-500">
+                            <p>No courses available in this program yet</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </main>
 
         {/* Right Sidebar */}
         <aside className={`bg-white border-l border-gray-200 p-6 overflow-auto transition-all duration-300 ${
@@ -160,7 +168,7 @@ const MyCourses = () => {
           {rightSidebarOpen && (
             <>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">Notification Panel</h2>
+                <h2 className="text-lg font-semibold text-gray-800">Notifications</h2>
                 <button
                   onClick={() => setRightSidebarOpen(false)}
                   className="p-1 hover:bg-gray-200 rounded"

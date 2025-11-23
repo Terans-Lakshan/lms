@@ -2,15 +2,35 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Header from "../../components/header";
 import Sidebar from "../../components/sidebar";
+import LecturerDashboardSidebar from "../../components/lecturerDashboardSidebar";
 
 const LecturerResults = () => {
   const [activeTab, setActiveTab] = useState("results");
   const [user, setUser] = useState({});
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
+  const [enrolledPrograms, setEnrolledPrograms] = useState([]);
 
   useEffect(() => {
-    axios.get("/api/users/me").then(res => setUser(res.data));
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const userRes = await axios.get("/api/auth/profile", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setUser(userRes.data);
+
+        const programsRes = await axios.get('/api/degree-programs/my-enrollments', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setEnrolledPrograms(programsRes.data);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+      }
+    };
+    fetchData();
   }, []);
 
   const navItems = [
@@ -31,6 +51,17 @@ const LecturerResults = () => {
       icon: (
         <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      )
+    },
+    {
+      type: "link",
+      href: "/lecturerDashboard/manage-courses",
+      title: "Manage Courses",
+      icon: (
+        <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       )
     },
@@ -94,40 +125,11 @@ const LecturerResults = () => {
           </div>
         </main>
 
-        <aside className={`bg-white border-l border-gray-200 p-6 overflow-auto transition-all duration-300 ${
-          rightSidebarOpen ? "w-80" : "w-0 p-0 overflow-hidden"
-        }`}>
-          {rightSidebarOpen && (
-            <>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">Grading Summary</h2>
-                <button
-                  onClick={() => setRightSidebarOpen(false)}
-                  className="p-1 hover:bg-gray-200 rounded"
-                  title="Hide Summary"
-                >
-                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-          <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm font-medium text-gray-700 mb-2">Graded</p>
-              <p className="text-3xl font-bold text-green-600">0</p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm font-medium text-gray-700 mb-2">Pending</p>
-              <p className="text-3xl font-bold text-orange-600">0</p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm font-medium text-gray-700 mb-2">Average Grade</p>
-              <p className="text-3xl font-bold text-teal-600">-</p>
-            </div>
-          </div>
-            </>
-          )}
-        </aside>
+        <LecturerDashboardSidebar 
+          isOpen={rightSidebarOpen}
+          onClose={() => setRightSidebarOpen(false)}
+          enrolledPrograms={enrolledPrograms}
+        />
       </div>
     </div>
   );

@@ -33,6 +33,44 @@ const createDegreeProgram = async (req, res) => {
     }
 }
 
+const updateDegreeProgram = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, code, description, previewImage, adminNotes } = req.body;
+
+        // Check if degree program exists
+        const degreeProgram = await DegreeProgram.findById(id);
+        if (!degreeProgram) {
+            return res.status(404).json({ message: "Degree program not found" });
+        }
+
+        // Check if another degree program with the same code exists
+        if (code !== degreeProgram.code) {
+            const existingProgram = await DegreeProgram.findOne({ code, _id: { $ne: id } });
+            if (existingProgram) {
+                return res.status(400).json({ message: "A degree program with this code already exists" });
+            }
+        }
+
+        // Update degree program
+        degreeProgram.title = title;
+        degreeProgram.code = code;
+        degreeProgram.description = description;
+        degreeProgram.previewImage = previewImage || '';
+        degreeProgram.adminNotes = adminNotes || '';
+        
+        await degreeProgram.save();
+
+        res.status(200).json({ 
+            message: "Degree program updated successfully", 
+            degreeProgram 
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: "Server error updating degree program" });
+    }
+}
+
 const getAllDegreePrograms = async (req, res) => {
     try {
         const programs = await DegreeProgram.find()
@@ -134,8 +172,9 @@ const updateEnrollmentStatus = async (req, res) => {
 const getMyEnrolledPrograms = async (req, res) => {
     try {
         const userId = req.user.id;
-        console.log('=== getMyEnrolledPrograms ===');
+        console.log('\n=== getMyEnrolledPrograms ===');
         console.log('User ID from token:', userId);
+        console.log('User object:', req.user);
 
         // Find the DegreeUser document for this user
         const degreeUser = await DegreeUser.findOne({ userId })
@@ -150,19 +189,55 @@ const getMyEnrolledPrograms = async (req, res) => {
                 }]
             });
         
+        console.log('DegreeUser query result:', degreeUser ? 'FOUND' : 'NOT FOUND');
+        if (degreeUser) {
+            console.log('DegreeUser ID:', degreeUser._id);
+            console.log('User role in DegreeUser:', degreeUser.userRole);
+            console.log('Total degrees in array:', degreeUser.degrees ? degreeUser.degrees.length : 0);
+            console.log('Degrees array:', JSON.stringify(degreeUser.degrees.map(d => ({
+                id: d._id,
+                title: d.degreeTitle,
+                status: d.status,
+                hasPopulatedData: !!d.degreeId
+            })), null, 2));
+        }
+        
         if (!degreeUser || !degreeUser.degrees || degreeUser.degrees.length === 0) {
-            console.log('No enrolled programs found');
+            console.log('Returning empty array - No degrees found');
             return res.status(200).json([]);
         }
 
-        console.log('Found degrees:', degreeUser.degrees.length);
+        console.log('Found total degrees:', degreeUser.degrees.length);
         
-        // Filter only active degrees and return the populated degree programs
-        const activePrograms = degreeUser.degrees
-            .filter(degree => degree.status === 'active')
-            .map(degree => degree.degreeId);
+        // Filter only active degrees and format as enrollment objects
+        const activeEnrollments = degreeUser.degrees
+            .filter(degree => {
+                const isActive = degree.status === 'active';
+                console.log(`Degree ${degree.degreeTitle}: status=${degree.status}, isActive=${isActive}`);
+                return isActive;
+            })
+            .map(degree => {
+                console.log('\nProcessing degree:', degree.degreeTitle);
+                console.log('  - degreeId populated:', !!degree.degreeId);
+                console.log('  - Status:', degree.status);
+                if (degree.degreeId) {
+                    console.log('  - Title:', degree.degreeId.title);
+                    console.log('  - Code:', degree.degreeId.code);
+                    console.log('  - Courses count:', degree.degreeId.courses?.length || 0);
+                    console.log('  - Courses:', degree.degreeId.courses);
+                }
+                return {
+                    _id: degree._id,
+                    degreeProgram: degree.degreeId,
+                    status: degree.status,
+                    acceptedAt: degree.acceptedAt,
+                    acceptedBy: degree.acceptedBy
+                };
+            });
         
-        res.status(200).json(activePrograms);
+        console.log('\nActive enrollments count:', activeEnrollments.length);
+        console.log('Sending response with', activeEnrollments.length, 'enrollments');
+        res.status(200).json(activeEnrollments);
     } catch (error) {
         console.error('Error fetching enrolled programs:', error);
         res.status(500).json({ error: "Server error fetching enrolled programs" });
@@ -277,13 +352,70 @@ const deleteDegreeProgram = async (req, res) => {
     }
 }
 
+const addCourseToDegree = async (req, res) => {
+    try {
+        const { title, code, credit, description, degreeProgramId } = req.body;
+        const userId = req.user.id;
+
+        console.log('=== addCourseToDegree ===');
+        console.log('User ID:', userId);
+        console.log('Degree Program ID:', degreeProgramId);
+
+        // Verify the lecturer is assigned to this degree program
+        const degreeUser = await DegreeUser.findOne({ userId });
+        
+        if (!degreeUser) {
+            return res.status(403).json({ error: "You are not assigned to any degree programs" });
+        }
+
+        const assignedDegree = degreeUser.degrees.find(
+            degree => degree.degreeId.toString() === degreeProgramId && degree.status === 'active'
+        );
+
+        if (!assignedDegree) {
+            return res.status(403).json({ error: "You are not assigned to teach this degree program" });
+        }
+
+        // Create the course
+        const newCourse = new Course({
+            title,
+            code,
+            credit: Number(credit),
+            description
+        });
+
+        await newCourse.save();
+        console.log('Course created:', newCourse._id);
+
+        // Add course to the degree program
+        const degreeProgram = await DegreeProgram.findById(degreeProgramId);
+        if (!degreeProgram) {
+            return res.status(404).json({ error: "Degree program not found" });
+        }
+
+        degreeProgram.courses.push(newCourse._id);
+        await degreeProgram.save();
+        console.log('Course added to degree program');
+
+        res.status(201).json({
+            message: "Course added successfully",
+            course: newCourse
+        });
+    } catch (error) {
+        console.error('Error adding course:', error);
+        res.status(500).json({ error: "Server error adding course" });
+    }
+};
+
 module.exports = {
     createDegreeProgram,
+    updateDegreeProgram,
     getAllDegreePrograms,
     enrollInProgram,
     getPendingEnrollments,
     updateEnrollmentStatus,
     getMyEnrolledPrograms,
     assignLecturerToProgram,
-    deleteDegreeProgram
+    deleteDegreeProgram,
+    addCourseToDegree
 };

@@ -4,6 +4,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import Header from "../../components/header";
 import Sidebar from "../../components/sidebar";
+import RequestNotification from "../../components/requestNotification";
 
 const ManageUsers = () => {
   const navigate = useNavigate();
@@ -16,10 +17,15 @@ const ManageUsers = () => {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
-    axios.get("/api/auth/profile").then((res) => setUser(res.data));
+    const token = localStorage.getItem('token');
+    axios.get("/api/auth/profile", {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then((res) => setUser(res.data));
     fetchUsers();
+    fetchNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -53,48 +59,60 @@ const ManageUsers = () => {
     }
   };
 
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await axios.get('http://localhost:3000/api/notifications/admin', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNotifications(response.data);
+      console.log('Admin notifications loaded:', response.data.length);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  const handleEnrollmentRequest = async (notificationId, action) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        'http://localhost:3000/api/notifications/handle-request',
+        { notificationId, action },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success(`Request ${action}ed successfully!`);
+      fetchNotifications(); // Refresh notifications
+    } catch (error) {
+      console.error('Error handling request:', error);
+      toast.error(error.response?.data?.message || 'Failed to process request');
+    }
+  };
+
   const navItems = [
     {
-      id: "dashboard",
-      type: "button",
+      type: "link",
+      href: "/adminDashboard",
       title: "Dashboard",
       icon: (
         <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
         </svg>
-      ),
-      onClick: () => window.location.href = '/admin/dashboard'
+      )
     },
     {
-      id: "manage-degree",
+      type: "link",
+      href: "/adminDashboard/manage-degree",
       title: "Manage Degree",
       icon: (
         <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
         </svg>
-      ),
-      children: [
-        {
-          id: "add-degree",
-          title: "Add Degree",
-          icon: (
-            <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          ),
-          onClick: () => navigate('/admin/add-degree')
-        },
-        {
-          id: "remove-degree",
-          title: "Remove Degree",
-          icon: (
-            <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-            </svg>
-          ),
-          onClick: () => alert('Remove Degree Program functionality')
-        }
-      ]
+      )
     },
     {
       id: "manage-users",
@@ -130,6 +148,11 @@ const ManageUsers = () => {
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
+              {notifications.filter(n => n.status === 'pending').length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                  {notifications.filter(n => n.status === 'pending').length}
+                </span>
+              )}
             </button>
           )}
           
@@ -386,36 +409,65 @@ const ManageUsers = () => {
         </main>
 
         <aside className={`bg-white border-l border-gray-200 p-6 overflow-auto transition-all duration-300 ${
-          rightSidebarOpen ? "w-80" : "w-0 p-0 overflow-hidden"
+          rightSidebarOpen ? "w-96" : "w-0 p-0 overflow-hidden"
         }`}>
           {rightSidebarOpen && (
             <>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">Notification Panel</h2>
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Enrollment Requests
+                  {notifications.filter(n => n.status === 'pending').length > 0 && (
+                    <span className="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                      {notifications.filter(n => n.status === 'pending').length}
+                    </span>
+                  )}
+                </h2>
                 <button
                   onClick={() => setRightSidebarOpen(false)}
                   className="p-1 hover:bg-gray-200 rounded"
-                  title="Hide Requests"
+                  title="Hide Notifications"
                 >
                   <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
-          <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm font-medium text-gray-700 mb-2">Total Users</p>
-              <p className="text-3xl font-bold text-teal-600">{users.length}</p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm font-medium text-gray-700 mb-2">Students</p>
-              <p className="text-3xl font-bold text-blue-600">0</p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm font-medium text-gray-700 mb-2">Lecturers</p>
-              <p className="text-3xl font-bold text-green-600">0</p>
-            </div>
-          </div>
+
+              {/* User Statistics */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="bg-teal-50 p-3 rounded-lg text-center">
+                  <p className="text-xs font-medium text-teal-600">Total</p>
+                  <p className="text-xl font-bold text-teal-700">{users.length}</p>
+                </div>
+                <div className="bg-green-50 p-3 rounded-lg text-center">
+                  <p className="text-xs font-medium text-green-600">Students</p>
+                  <p className="text-xl font-bold text-green-700">{users.filter(u => u.role === 'student').length}</p>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg text-center">
+                  <p className="text-xs font-medium text-blue-600">Lecturers</p>
+                  <p className="text-xl font-bold text-blue-700">{users.filter(u => u.role === 'lecturer').length}</p>
+                </div>
+              </div>
+
+              {notifications.length === 0 ? (
+                <div className="text-center py-8">
+                  <svg className="w-16 h-16 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                  <p className="text-gray-500 text-sm">No enrollment requests</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {notifications.map((notification) => (
+                    <RequestNotification
+                      key={notification._id}
+                      notification={notification}
+                      onAccept={(id) => handleEnrollmentRequest(id, 'accept')}
+                      onReject={(id) => handleEnrollmentRequest(id, 'reject')}
+                    />
+                  ))}
+                </div>
+              )}
             </>
           )}
         </aside>

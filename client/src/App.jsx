@@ -7,11 +7,12 @@ import MyCourses from './pages/student/myCourses'
 import Results from './pages/student/results'
 import LecturerDashboard from './pages/lecturer/dashboard'
 import LecturerMyCourses from './pages/lecturer/myCourses'
+import LecturerManageCourses from './pages/lecturer/manageCourses'
 import LecturerResults from './pages/lecturer/results'
 import AdminDashboard from './pages/admin/dashboard'
-import ManageCourses from './pages/admin/manageCourses'
 import ManageUsers from './pages/admin/manageUsers'
 import AddDegreeProgram from './pages/admin/addDegreeProgram'
+import ManageDegree from './pages/admin/manageDegree'
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import axios from 'axios';
@@ -38,12 +39,13 @@ function App() {
           <Route path="/studentDashboard/results" element={<Results />} />
           <Route path="/lecturerDashboard" element={<LecturerDashboard />} />
           <Route path="/lecturerDashboard/my-courses" element={<LecturerMyCourses />} />
+          <Route path="/lecturerDashboard/manage-courses" element={<LecturerManageCourses />} />
           <Route path="/lecturerDashboard/results" element={<LecturerResults />} />
           <Route path="/adminDashboard" element={<AdminDashboard />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/adminDashboard/manage-degree" element={<ManageDegree />} />
           <Route path="/admin/add-degree" element={<AddDegreeProgram />} />
           <Route path="/admin/manage-users" element={<ManageUsers />} />
-          <Route path="/adminDashboard/manage-courses" element={<ManageCourses />} />
           <Route path="/adminDashboard/manage-users" element={<ManageUsers />} />
           <Route path="/forgetpassword" element={<ForgetPassword/>} />
           <Route path="/reset-password" element={<ResetPassword/>} />

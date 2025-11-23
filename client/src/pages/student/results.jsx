@@ -203,7 +203,7 @@ const Results = () => {
           {rightSidebarOpen && (
             <>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">Notification Panel</h2>
+                <h2 className="text-lg font-semibold text-gray-800">Notifications</h2>
                 <button
                   onClick={() => setRightSidebarOpen(false)}
                   className="p-1 hover:bg-gray-200 rounded"
