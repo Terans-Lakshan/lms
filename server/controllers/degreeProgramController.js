@@ -169,11 +169,121 @@ const getMyEnrolledPrograms = async (req, res) => {
     }
 }
 
+const assignLecturerToProgram = async (req, res) => {
+    try {
+        const { degreeProgramId, lecturerId } = req.body;
+        
+        if (!degreeProgramId || !lecturerId) {
+            return res.status(400).json({ message: "Degree program ID and lecturer ID are required" });
+        }
+
+        // Find the degree program
+        const degreeProgram = await DegreeProgram.findById(degreeProgramId);
+        if (!degreeProgram) {
+            return res.status(404).json({ message: "Degree program not found" });
+        }
+
+        // Check if lecturer exists
+        const lecturer = await User.findById(lecturerId);
+        if (!lecturer || lecturer.role !== 'lecturer') {
+            return res.status(404).json({ message: "Lecturer not found" });
+        }
+
+        // Check if lecturer is already assigned
+        if (degreeProgram.lecturers.includes(lecturerId)) {
+            return res.status(400).json({ message: "Lecturer is already assigned to this program" });
+        }
+
+        // Add lecturer to degree program
+        degreeProgram.lecturers.push(lecturerId);
+        await degreeProgram.save();
+
+        // Also update DegreeUser collection
+        let degreeUser = await DegreeUser.findOne({ userId: lecturerId });
+        
+        if (!degreeUser) {
+            degreeUser = new DegreeUser({
+                userId: lecturerId,
+                userName: `${lecturer.name.first} ${lecturer.name.last}`,
+                userEmail: lecturer.email,
+                userRole: 'lecturer',
+                degrees: [{
+                    degreeId: degreeProgramId,
+                    degreeTitle: degreeProgram.title,
+                    degreeCode: degreeProgram.code,
+                    acceptedBy: req.user.id,
+                    status: 'active'
+                }]
+            });
+        } else {
+            const degreeExists = degreeUser.degrees.some(
+                deg => deg.degreeId.toString() === degreeProgramId.toString()
+            );
+            
+            if (!degreeExists) {
+                degreeUser.degrees.push({
+                    degreeId: degreeProgramId,
+                    degreeTitle: degreeProgram.title,
+                    degreeCode: degreeProgram.code,
+                    acceptedBy: req.user.id,
+                    status: 'active'
+                });
+            }
+        }
+        
+        await degreeUser.save();
+
+        const populatedProgram = await DegreeProgram.findById(degreeProgramId)
+            .populate('lecturers', 'name email');
+
+        res.status(200).json({ 
+            message: "Lecturer assigned successfully", 
+            degreeProgram: populatedProgram 
+        });
+    } catch (error) {
+        console.error('Error assigning lecturer:', error);
+        res.status(500).json({ error: "Server error assigning lecturer" });
+    }
+}
+
+const deleteDegreeProgram = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Find and delete the degree program
+        const degreeProgram = await DegreeProgram.findByIdAndDelete(id);
+        
+        if (!degreeProgram) {
+            return res.status(404).json({ message: "Degree program not found" });
+        }
+
+        // Also clean up related data
+        // Delete enrollments for this degree
+        await Enrollment.deleteMany({ degreeProgram: id });
+        
+        // Remove from DegreeUser collection
+        await DegreeUser.updateMany(
+            { 'degrees.degreeId': id },
+            { $pull: { degrees: { degreeId: id } } }
+        );
+
+        res.status(200).json({ 
+            message: "Degree program deleted successfully",
+            deletedProgram: degreeProgram
+        });
+    } catch (error) {
+        console.error('Error deleting degree program:', error);
+        res.status(500).json({ error: "Server error deleting degree program" });
+    }
+}
+
 module.exports = {
     createDegreeProgram,
     getAllDegreePrograms,
     enrollInProgram,
     getPendingEnrollments,
     updateEnrollmentStatus,
-    getMyEnrolledPrograms
+    getMyEnrolledPrograms,
+    assignLecturerToProgram,
+    deleteDegreeProgram
 };

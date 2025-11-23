@@ -8,7 +8,9 @@ const {
     enrollInProgram,
     getPendingEnrollments,
     updateEnrollmentStatus,
-    getMyEnrolledPrograms
+    getMyEnrolledPrograms,
+    assignLecturerToProgram,
+    deleteDegreeProgram
 } = require('../controllers/degreeProgramController');
 
 router.use(cors({
@@ -23,5 +25,7 @@ router.get('/enrollments/pending', getPendingEnrollments);
 router.post('/enrollments/update', updateEnrollmentStatus);
 router.get('/enrollments/my-programs', authenticateToken, getMyEnrolledPrograms);
 router.get('/my-enrollments', authenticateToken, getMyEnrolledPrograms);
+router.post('/assign-lecturer', authenticateToken, assignLecturerToProgram);
+router.delete('/:id', authenticateToken, deleteDegreeProgram);
 
 module.exports = router;

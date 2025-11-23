@@ -7,6 +7,10 @@ const degreeUserSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    userName: {
+        type: String,
+        required: true
+    },
     userEmail: {
         type: String,
         required: true
@@ -22,11 +26,27 @@ const degreeUserSchema = new mongoose.Schema({
             ref: 'DegreeProgram',
             required: true
         },
+        degreeTitle: {
+            type: String,
+            required: true
+        },
         degreeCode: {
             type: String,
             required: true
         },
-        
+        acceptedAt: {
+            type: Date,
+            default: Date.now
+        },
+        status: {
+            type: String,
+            enum: ['active', 'completed', 'inactive'],
+            default: 'active'
+        },
+        acceptedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }
     }],
     createdAt: {
         type: Date,

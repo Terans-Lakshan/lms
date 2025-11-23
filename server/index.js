@@ -41,3 +41,4 @@ function startServer(withDb = false) {
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/degree-programs', require('./routes/degreeProgramRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/upload', require('./routes/uploadRoutes'));

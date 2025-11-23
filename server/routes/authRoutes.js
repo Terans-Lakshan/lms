@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const cors = require('cors');
-const {test, registerUser, loginUser, getProfile,forgetPassword, resetPassword, verifyOtp, resendOtp, getAllUsers} = require('../controllers/authController');
+const {test, registerUser, loginUser, getProfile,forgetPassword, resetPassword, verifyOtp, resendOtp, getAllUsers, getAllLecturers} = require('../controllers/authController');
 
 
 router.use(cors({
@@ -20,5 +20,6 @@ router.post("/resend-otp", resendOtp);
 
 // Admin routes
 router.get("/users", getAllUsers);
+router.get("/lecturers", getAllLecturers);
 
 module.exports = router;

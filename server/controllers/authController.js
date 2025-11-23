@@ -1,6 +1,8 @@
 const User = require('../models/user.js');
+const DegreeUser = require('../models/degreeUser.js');
 const { hashPassword,comparePassword } = require('../middlewares/auth.js');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
 const test = (req,res)=>{
     res.send("Auth route working");
@@ -142,8 +144,6 @@ const getProfile = async (req, res) => {
 }
 
 
-
-const nodemailer = require('nodemailer');
 
 const forgetPassword = async (req, res) => {
     const { email } = req.body;
@@ -320,16 +320,58 @@ const resendOtp = async (req, res) => {
 // Get all users (admin only)
 const getAllUsers = async (req, res) => {
   try {
+    console.log('Fetching all users...');
     const users = await User.find()
       .select('-password -otp -otpExpires')
-      .populate('degreeProgram', 'title code')
       .sort({ createdAt: -1 });
     
-    res.json(users);
+    console.log(`Found ${users.length} users`);
+    
+    // Fetch degree enrollments from DegreeUser model
+    const usersWithDegrees = await Promise.all(
+      users.map(async (user) => {
+        try {
+          const userObj = user.toObject();
+          
+          // Get all degrees this user is enrolled in from DegreeUser model
+          const degreeUserData = await DegreeUser.findOne({ userId: user._id })
+            .select('degrees');
+          
+          // Add enrolled degrees to user object
+          userObj.enrolledDegrees = degreeUserData?.degrees || [];
+          
+          return userObj;
+        } catch (err) {
+          console.error(`Error processing user ${user._id}:`, err);
+          // Return user without degree data if there's an error
+          const userObj = user.toObject();
+          userObj.enrolledDegrees = [];
+          return userObj;
+        }
+      })
+    );
+    
+    console.log('Successfully processed all users with degree data');
+    res.json(usersWithDegrees);
   } catch (error) {
     console.error('Error fetching users:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Get all lecturers (admin only)
+const getAllLecturers = async (req, res) => {
+  try {
+    const lecturers = await User.find({ role: 'lecturer', isVerified: true })
+      .select('name email registrationNo')
+      .sort({ 'name.first': 1 });
+    
+    res.json(lecturers);
+  } catch (error) {
+    console.error('Error fetching lecturers:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-module.exports = {test, registerUser, loginUser, getProfile, forgetPassword, resetPassword, verifyOtp, resendOtp, getAllUsers};
+module.exports = {test, registerUser, loginUser, getProfile, forgetPassword, resetPassword, verifyOtp, resendOtp, getAllUsers, getAllLecturers};
