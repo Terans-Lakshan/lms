@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { upload, s3, createUploadMiddleware, createS3Folder, deleteS3Object, deleteS3Folder } = require('../config/s3');
 const { authenticateToken } = require('../middlewares/auth');
+const Course = require('../models/course');
 
 console.log('Upload routes module loaded');
 
@@ -102,10 +103,10 @@ router.post('/upload-course-material', (req, res, next) => {
         }
         next();
     });
-}, (req, res) => {
+}, async (req, res) => {
     const courseUpload = createUploadMiddleware('course-material');
     
-    courseUpload.single('file')(req, res, function (err) {
+    courseUpload.single('file')(req, res, async function (err) {
         if (err) {
             console.error('Course material upload error:', err);
             return res.status(500).json({ 
@@ -118,16 +119,57 @@ router.post('/upload-course-material', (req, res, next) => {
             return res.status(400).json({ message: 'No file uploaded' });
         }
 
-        console.log('Course material uploaded successfully:', {
-            key: req.file.key,
-            location: req.file.location
-        });
+        try {
+            // Get course information from request body
+            const { courseCode, degreeCode } = req.body;
+            
+            // Find the course by code
+            let course = null;
+            if (courseCode) {
+                course = await Course.findOne({ code: courseCode });
+            }
 
-        res.json({
-            message: 'Course material uploaded successfully',
-            url: req.file.location,
-            key: req.file.key
-        });
+            // If course found, save file info to resources
+            if (course) {
+                const newMaterial = {
+                    type: 'file',
+                    key: req.file.key,
+                    url: req.file.location,
+                    filename: req.file.originalname,
+                    mimeType: req.file.mimetype,
+                    uploadedBy: req.user.id,
+                    createdAt: new Date()
+                };
+
+                course.resources.push(newMaterial);
+                await course.save();
+
+                console.log('Course material saved to database:', newMaterial);
+            }
+
+            console.log('Course material uploaded successfully:', {
+                key: req.file.key,
+                location: req.file.location,
+                courseCode: courseCode,
+                savedToDb: !!course
+            });
+
+            res.json({
+                message: 'Course material uploaded successfully',
+                url: req.file.location,
+                key: req.file.key,
+                savedToDatabase: !!course
+            });
+        } catch (error) {
+            console.error('Error saving course material to database:', error);
+            // Still return success for S3 upload
+            res.json({
+                message: 'Course material uploaded to S3 but failed to save to database',
+                url: req.file.location,
+                key: req.file.key,
+                error: error.message
+            });
+        }
     });
 });
 

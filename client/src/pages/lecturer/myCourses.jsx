@@ -219,7 +219,7 @@ const LecturerMyCourses = () => {
                     {program.courses && program.courses.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {program.courses.map((course) => (
-                          <CourseCard key={course._id} course={course} userRole="lecturer" onActionSuccess={handleActionSuccess} />
+                          <CourseCard key={course._id} course={course} userRole="lecturer" onActionSuccess={handleActionSuccess} degreeCode={program.code} />
                         ))}
                       </div>
                     ) : (

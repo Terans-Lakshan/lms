@@ -14,10 +14,11 @@ const CourseSchema = new mongoose.Schema({
   },
   degreeProgram: { type: mongoose.Schema.Types.ObjectId, ref: "DegreeProgram" },
   resources: [{
-    key: String,        // S3 object key
-    url: String,        // public or presigned URL
-    filename: String,
-    mimeType: String,
+    type: { type: String, enum: ['file', 'link'], default: 'file' }, // Material type
+    key: String,        // S3 object key (for files only)
+    url: String,        // public/presigned URL (for files) or external link URL
+    filename: String,   // Original filename (for files) or link title
+    mimeType: String,   // MIME type (for files only)
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     createdAt: { type: Date, default: Date.now },
   }],

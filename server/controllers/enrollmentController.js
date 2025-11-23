@@ -8,7 +8,7 @@ const DegreeProgram = require('../models/degreeProgramme');
 const enrollInCourse = async (req, res) => {
   try {
     const { courseId } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     // Validate course exists
     const course = await Course.findById(courseId);
@@ -93,7 +93,7 @@ const enrollInCourse = async (req, res) => {
 const unenrollFromCourse = async (req, res) => {
   try {
     const { courseId } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     // Find CourseUser document
     const courseUser = await CourseUser.findOne({ userId });
@@ -128,7 +128,7 @@ const unenrollFromCourse = async (req, res) => {
 // Get user's enrolled courses
 const getEnrolledCourses = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const courseUser = await CourseUser.findOne({ userId })
       .populate('courses.courseId');
@@ -151,7 +151,7 @@ const getEnrolledCourses = async (req, res) => {
 const getCourseEnrollmentStatus = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     // Check if enrolled
     const courseUser = await CourseUser.findOne({ userId });
@@ -180,7 +180,7 @@ const getCourseEnrollmentStatus = async (req, res) => {
 const handleCourseEnrollmentRequest = async (req, res) => {
   try {
     const { notificationId, action } = req.body;
-    const lecturerId = req.user.userId;
+    const lecturerId = req.user.id;
 
     if (!['accept', 'reject'].includes(action)) {
       return res.status(400).json({ message: 'Invalid action' });

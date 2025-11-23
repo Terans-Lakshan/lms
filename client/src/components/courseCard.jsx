@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = false, enrollmentStatus = 'not_enrolled' }) => {
+const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = false, enrollmentStatus = 'not_enrolled', degreeCode = '' }) => {
   const [loading, setLoading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [materialLink, setMaterialLink] = useState('');
+  const [uploadType, setUploadType] = useState('file'); // 'file' or 'link'
   const [enrolling, setEnrolling] = useState(false);
   const [unenrolling, setUnenrolling] = useState(false);
 
@@ -54,32 +56,56 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
   };
 
   const handleUploadMaterial = async () => {
-    if (!selectedFile) {
+    if (uploadType === 'file' && !selectedFile) {
       toast.error('Please select a file first');
+      return;
+    }
+
+    if (uploadType === 'link' && !materialLink) {
+      toast.error('Please enter a link');
       return;
     }
 
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('courseId', course._id);
 
-      await axios.post(
-        'http://localhost:3000/api/upload-course-material',
-        formData,
-        { 
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-          } 
-        }
-      );
+      if (uploadType === 'link') {
+        // Save link directly to course (you'll need to create this endpoint)
+        await axios.post(
+          'http://localhost:3000/api/courses/add-material-link',
+          { 
+            courseId: course._id,
+            link: materialLink,
+            degreeCode: degreeCode || '',
+            courseCode: course.code || ''
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        toast.success('Link added successfully!');
+      } else {
+        // Upload file to S3
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('courseCode', course.code || '');
+        formData.append('degreeCode', degreeCode || '');
+
+        await axios.post(
+          'http://localhost:3000/api/upload/upload-course-material',
+          formData,
+          { 
+            headers: { 
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data'
+            } 
+          }
+        );
+        toast.success('Material uploaded successfully!');
+      }
       
-      toast.success('Material uploaded successfully!');
       setShowUploadModal(false);
       setSelectedFile(null);
+      setMaterialLink('');
       if (onActionSuccess) onActionSuccess();
     } catch (error) {
       console.error('Upload error:', error);
@@ -179,11 +205,12 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-800">Upload Course Material</h3>
+              <h3 className="text-xl font-bold text-gray-800">Add Course Material</h3>
               <button
                 onClick={() => {
                   setShowUploadModal(false);
                   setSelectedFile(null);
+                  setMaterialLink('');
                 }}
                 className="text-gray-500 hover:text-gray-700"
                 disabled={loading}
@@ -199,28 +226,85 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
               <p className="text-sm text-gray-600">Code: <span className="font-semibold">{course.code}</span></p>
             </div>
 
+            {/* Upload Type Selection */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select File
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Material Type
               </label>
-              <input
-                type="file"
-                onChange={handleFileSelect}
-                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
-                disabled={loading}
-              />
-              {selectedFile && (
-                <p className="mt-2 text-sm text-gray-600">
-                  Selected: <span className="font-medium">{selectedFile.name}</span>
-                </p>
-              )}
+              <div className="flex gap-4">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="uploadType"
+                    value="file"
+                    checked={uploadType === 'file'}
+                    onChange={(e) => setUploadType(e.target.value)}
+                    className="mr-2 text-teal-600 focus:ring-teal-500"
+                    disabled={loading}
+                  />
+                  <span className="text-sm text-gray-700">Upload File</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="uploadType"
+                    value="link"
+                    checked={uploadType === 'link'}
+                    onChange={(e) => setUploadType(e.target.value)}
+                    className="mr-2 text-teal-600 focus:ring-teal-500"
+                    disabled={loading}
+                  />
+                  <span className="text-sm text-gray-700">Add Link</span>
+                </label>
+              </div>
             </div>
+
+            {/* File Upload Section */}
+            {uploadType === 'file' && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select File
+                </label>
+                <input
+                  type="file"
+                  onChange={handleFileSelect}
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
+                  disabled={loading}
+                />
+                {selectedFile && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    Selected: <span className="font-medium">{selectedFile.name}</span>
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Link Input Section */}
+            {uploadType === 'link' && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Material Link
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://example.com/resource or https://youtube.com/..."
+                  value={materialLink}
+                  onChange={(e) => setMaterialLink(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  disabled={loading}
+                />
+                <p className="mt-2 text-xs text-gray-500">
+                  Add links to YouTube videos, Google Drive files, or external resources
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-3">
               <button
                 onClick={() => {
                   setShowUploadModal(false);
                   setSelectedFile(null);
+                  setMaterialLink('');
                 }}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition"
                 disabled={loading}
@@ -229,10 +313,10 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
               </button>
               <button
                 onClick={handleUploadMaterial}
-                disabled={!selectedFile || loading}
+                disabled={(uploadType === 'file' && !selectedFile) || (uploadType === 'link' && !materialLink) || loading}
                 className="flex-1 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg font-medium hover:from-teal-600 hover:to-emerald-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Uploading...' : 'Upload'}
+                {loading ? (uploadType === 'file' ? 'Uploading...' : 'Adding...') : (uploadType === 'file' ? 'Upload' : 'Add Link')}
               </button>
             </div>
           </div>

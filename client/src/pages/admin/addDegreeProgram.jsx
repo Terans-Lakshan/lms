@@ -27,49 +27,49 @@ const AddDegreeProgram = () => {
   const [uploadedImageKey, setUploadedImageKey] = useState(null);
 
   useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+        
+        const response = await axios.get('http://localhost:3000/api/auth/profile', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (response.data.role !== 'admin') {
+          toast.error('Access denied. Admin only.');
+          navigate('/login');
+          return;
+        }
+        
+        setUser(response.data);
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        navigate('/login');
+      }
+    };
+
+    const fetchNotifications = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await axios.get('http://localhost:3000/api/notifications/admin', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setNotifications(response.data);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+
     fetchUser();
     fetchNotifications();
     fetchUsers();
   }, []);
-
-  const fetchUser = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-      
-      const response = await axios.get('http://localhost:3000/api/auth/profile', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.data.role !== 'admin') {
-        toast.error('Access denied. Admin only.');
-        navigate('/login');
-        return;
-      }
-      
-      setUser(response.data);
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      navigate('/login');
-    }
-  };
-
-  const fetchNotifications = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const response = await axios.get('http://localhost:3000/api/notifications/admin', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setNotifications(response.data);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    }
-  };
 
   const handleEnrollmentRequest = async (notificationId, action) => {
     try {

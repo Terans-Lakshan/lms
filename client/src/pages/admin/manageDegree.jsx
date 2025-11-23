@@ -18,6 +18,11 @@ const ManageDegree = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  
+  // Edit image upload states
+  const [uploadingEditImage, setUploadingEditImage] = useState(false);
+  const [dragActiveEdit, setDragActiveEdit] = useState(false);
+  const [editImagePreview, setEditImagePreview] = useState(null);
 
   // Add degree form state
   const [degreeData, setDegreeData] = useState({
@@ -207,6 +212,7 @@ const ManageDegree = () => {
       previewImage: degree.previewImage || "",
       adminNotes: degree.adminNotes || ""
     });
+    setEditImagePreview(degree.previewImage || null);
     setSubTab("edit-degree");
   };
 
@@ -216,6 +222,82 @@ const ManageDegree = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleEditImageUpload = async (file) => {
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size should be less than 5MB');
+      return;
+    }
+
+    // Check if degree code is provided
+    if (!editDegreeData.code) {
+      toast.error('Degree code is required');
+      return;
+    }
+
+    setUploadingEditImage(true);
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('degreeCode', editDegreeData.code);
+
+      const response = await axios.post(
+        'http://localhost:3000/api/upload/upload-degree-preview',
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      setEditDegreeData(prev => ({ ...prev, previewImage: response.data.url }));
+      setEditImagePreview(response.data.url);
+      toast.success('Image uploaded successfully!');
+    } catch (error) {
+      console.error('Image upload error:', error);
+      toast.error(error.response?.data?.message || 'Failed to upload image');
+    } finally {
+      setUploadingEditImage(false);
+    }
+  };
+
+  const handleEditDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActiveEdit(true);
+    } else if (e.type === "dragleave") {
+      setDragActiveEdit(false);
+    }
+  };
+
+  const handleEditDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActiveEdit(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleEditImageUpload(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleEditFileInput = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleEditImageUpload(e.target.files[0]);
+    }
   };
 
   const handleUpdateDegree = async (e) => {
@@ -633,16 +715,69 @@ const ManageDegree = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Preview Image URL (Optional)
+                        Preview Image
                       </label>
-                      <input
-                        type="text"
-                        name="previewImage"
-                        value={editDegreeData.previewImage}
-                        onChange={handleEditInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                        placeholder="https://example.com/image.jpg"
-                      />
+                      <div
+                        onDragEnter={handleEditDrag}
+                        onDragLeave={handleEditDrag}
+                        onDragOver={handleEditDrag}
+                        onDrop={handleEditDrop}
+                        className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                          dragActiveEdit
+                            ? "border-teal-500 bg-teal-50"
+                            : "border-gray-300 hover:border-teal-400"
+                        }`}
+                      >
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleEditFileInput}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        {editImagePreview || editDegreeData.previewImage ? (
+                          <div className="space-y-3">
+                            <img
+                              src={editImagePreview || editDegreeData.previewImage}
+                              alt="Preview"
+                              className="mx-auto max-h-48 rounded-lg"
+                            />
+                            <p className="text-sm text-gray-600">
+                              Drag and drop to replace or click to select new image
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <svg
+                              className="mx-auto h-12 w-12 text-gray-400"
+                              stroke="currentColor"
+                              fill="none"
+                              viewBox="0 0 48 48"
+                            >
+                              <path
+                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                            <div className="text-sm text-gray-600">
+                              <span className="font-semibold text-teal-600">Click to upload</span> or drag and drop
+                            </div>
+                            <p className="text-xs text-gray-500">PNG, JPG, GIF up to 5MB</p>
+                          </div>
+                        )}
+                        {uploadingEditImage && (
+                          <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center rounded-lg">
+                            <div className="text-center">
+                              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-2"></div>
+                              <p className="text-sm text-gray-600">Uploading...</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <p className="mt-2 text-xs text-gray-500">
+                        Please enter the degree code first before uploading an image
+                      </p>
                     </div>
 
                     <div>
