@@ -337,9 +337,12 @@ exports.getLecturerNotifications = async (req, res) => {
     const DegreeUser = require('../models/degreeUser');
     const degreeUser = await DegreeUser.findOne({ userId: lecturerId });
     
+    console.log('Lecturer degreeUser:', degreeUser);
+    
     let courseEnrollmentRequests = [];
     if (degreeUser && degreeUser.degrees.length > 0) {
       const degreeProgramIds = degreeUser.degrees.map(d => d.degreeId);
+      console.log('Lecturer degree program IDs:', degreeProgramIds);
       
       courseEnrollmentRequests = await Notification.find({
         type: 'course_enrollment_request',
@@ -350,6 +353,8 @@ exports.getLecturerNotifications = async (req, res) => {
         .populate('course', 'title code')
         .populate('degreeProgram', 'title code')
         .sort({ createdAt: -1 });
+      
+      console.log('Course enrollment requests found:', courseEnrollmentRequests.length);
     }
 
     // Combine both notification types

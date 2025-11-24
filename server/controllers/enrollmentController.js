@@ -65,6 +65,12 @@ const enrollInCourse = async (req, res) => {
     });
 
     await notification.save();
+    console.log('Course enrollment notification created:', {
+      type: notification.type,
+      degreeProgram: degreeProgram._id,
+      course: courseId,
+      student: userId
+    });
 
     // Create a response notification for the student
     const studentNotification = new Notification({

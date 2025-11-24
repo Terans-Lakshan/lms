@@ -5,20 +5,23 @@ const Header = ({ sidebarOpen, setSidebarOpen, user }) => {
   const [accountBarOpen, setAccountBarOpen] = useState(false);
 
   return (
-    <header className="bg-gradient-to-r from-teal-800 to-emerald-900 border-b border-gray-200 px-10 py-6 flex items-center justify-between rounded-b-lg w-full">
+    <header className="bg-gradient-to-r from-teal-800 to-emerald-900 border-b border-gray-200 px-10 py-6 flex items-center justify-between rounded-b-lg w-full shadow-lg">
       <div className="flex items-center gap-4 flex-1">
         {/* Burger Icon - Always in Header */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 hover:bg-teal-700 rounded-lg"
+          className="p-2 hover:bg-teal-700 rounded-lg transition-colors"
         >
           <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <h1 className="text-2xl font-semibold text-white absolute left-1/2 transform -translate-x-1/2">
-          Learning Management System
-        </h1>
+        <div className="absolute left-1/2 transform -translate-x-1/2 text-center">
+          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-wide">
+            Geology Learning Management System
+          </h1>
+          <p className="text-xs text-teal-100 mt-1 tracking-wider">University of Peradeniya - PGIS</p>
+        </div>
       </div>
 
       <div className="relative">
