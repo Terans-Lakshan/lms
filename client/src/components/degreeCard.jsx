@@ -158,16 +158,14 @@ const DegreeCard = ({ degree = {}, userRole = '', onEnrollmentSuccess, enrolledP
         onClick={() => onClick && onClick(degree)}
       >
         {/* First div - Background Image with Title */}
-        <div 
-          className="relative h-48 bg-cover bg-center flex items-center justify-center"
-          style={{ 
-            backgroundImage: `url(${degree.previewImage || defaultDegreeImage})`,
-            backgroundColor: 'rgba(0, 0, 0, 0.3)',
-            backgroundBlendMode: 'darken'
-          }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-          <h3 className="relative z-10 text-white text-2xl font-bold text-center px-4">
+        <div className="relative h-48 overflow-hidden flex items-center justify-center bg-gray-200">
+          <img 
+            src={degree.previewImage || defaultDegreeImage} 
+            alt={degree.title}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/40"></div>
+          <h3 className="relative z-10 text-white text-2xl font-bold text-center px-4 drop-shadow-lg">
             {degree.title || 'Untitled Degree Program'}
           </h3>
         </div>

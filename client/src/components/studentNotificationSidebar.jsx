@@ -21,7 +21,7 @@ const StudentNotificationSidebar = ({ isOpen, onClose, notifications, onNotifica
   };
 
   return (
-    <aside className={`bg-white border-l border-gray-200 p-6 overflow-auto transition-all duration-300 ${
+    <aside className={`bg-gradient-to-b from-teal-100 via-teal-50 to-emerald-50 border-l border-gray-200 p-6 overflow-auto transition-all duration-300 ${
       isOpen ? "w-96" : "w-0 p-0 overflow-hidden"
     }`}>
       {isOpen && (

@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import Header from "../../components/header";
 import Sidebar from "../../components/sidebar";
 import DegreeCard from "../../components/degreeCard";
+import ContactInfo from "../../components/contactInfo";
 
 const LecturerDashboard = () => {
   const navigate = useNavigate();
@@ -403,6 +404,7 @@ const LecturerDashboard = () => {
           )}
         </aside>
       </div>
+      <ContactInfo />
     </div>
   );
 };

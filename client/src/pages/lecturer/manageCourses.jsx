@@ -5,6 +5,7 @@ import Header from "../../components/header";
 import Sidebar from "../../components/sidebar";
 import CourseCard from "../../components/courseCard";
 import LecturerDashboardSidebar from "../../components/lecturerDashboardSidebar";
+import ContactInfo from "../../components/contactInfo";
 
 const LecturerManageCourses = () => {
   const [activeTab, setActiveTab] = useState("manage-courses");
@@ -30,6 +31,7 @@ const LecturerManageCourses = () => {
     credit: "",
     description: ""
   });
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleActionSuccess = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -433,6 +435,30 @@ const LecturerManageCourses = () => {
               <div className="w-full max-w-6xl">
               {!editingCourse ? (
                 <div className="space-y-6">
+                  {/* Search Bar */}
+                  <div className="relative mb-6">
+                    <input
+                      type="text"
+                      placeholder="Search degree programs by name..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    />
+                    <svg
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </div>
+
                   {enrolledPrograms.length === 0 ? (
                     <div className="bg-white rounded-xl shadow-lg p-12 text-center">
                       <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -441,7 +467,18 @@ const LecturerManageCourses = () => {
                       <p className="text-gray-500 text-lg">No degree programs assigned</p>
                     </div>
                   ) : (
-                    enrolledPrograms.map((enrollment) => {
+                    enrolledPrograms
+                      .filter((enrollment) => {
+                        const program = enrollment.degreeProgram;
+                        if (!program) return false;
+                        
+                        // Filter by search query
+                        if (searchQuery) {
+                          return program.title.toLowerCase().includes(searchQuery.toLowerCase());
+                        }
+                        return true;
+                      })
+                      .map((enrollment) => {
                       const program = enrollment.degreeProgram;
                       if (!program) return null;
                       
@@ -679,6 +716,7 @@ const LecturerManageCourses = () => {
           enrolledPrograms={enrolledPrograms}
         />
       </div>
+      <ContactInfo />
     </div>
   );
 };

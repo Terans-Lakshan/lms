@@ -5,12 +5,12 @@ const Header = ({ sidebarOpen, setSidebarOpen, user }) => {
   const [accountBarOpen, setAccountBarOpen] = useState(false);
 
   return (
-    <header className="bg-teal-500 border-b border-gray-200 px-10 py-6 flex items-center justify-between rounded-b-lg w-full">
+    <header className="bg-gradient-to-r from-teal-800 to-emerald-900 border-b border-gray-200 px-10 py-6 flex items-center justify-between rounded-b-lg w-full">
       <div className="flex items-center gap-4 flex-1">
         {/* Burger Icon - Always in Header */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 hover:bg-teal-600 rounded-lg"
+          className="p-2 hover:bg-teal-700 rounded-lg"
         >
           <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -24,7 +24,7 @@ const Header = ({ sidebarOpen, setSidebarOpen, user }) => {
       <div className="relative">
         <button 
           onClick={() => setAccountBarOpen(!accountBarOpen)}
-          className="p-2 hover:bg-teal-600 rounded-lg" 
+          className="p-2 hover:bg-teal-700 rounded-lg" 
           title="Account"
         >
           <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

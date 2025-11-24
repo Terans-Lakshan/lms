@@ -10,7 +10,7 @@ const app = express();
 
 //middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'],  // your React frontend origins
+  origin: ['http://localhost:5174'],  // your React frontend origin
   credentials: true
 }));
 

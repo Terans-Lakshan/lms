@@ -7,6 +7,7 @@ import Header from "../../components/header";
 import Sidebar from "../../components/sidebar";
 import DegreeCard from "../../components/degreeCard";
 import RequestNotification from "../../components/requestNotification";
+import ContactInfo from "../../components/contactInfo";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -134,6 +135,21 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error('Error handling request:', error);
       toast.error(error.response?.data?.message || 'Failed to process request');
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(
+        `http://localhost:3000/api/notifications/${notificationId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Notification deleted successfully');
+      fetchNotifications(); // Refresh notifications
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      toast.error('Failed to delete notification');
     }
   };
 
@@ -865,7 +881,7 @@ const AdminDashboard = () => {
                   {notifications.map((notification) => (
                     <RequestNotification
                       key={notification._id}
-                      notification={notification}
+                      notification={{...notification, onDelete: handleDeleteNotification}}
                       onAccept={(id) => handleEnrollmentRequest(id, 'accept')}
                       onReject={(id) => handleEnrollmentRequest(id, 'reject')}
                     />
@@ -928,6 +944,7 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
+      <ContactInfo />
     </div>
   );
 };

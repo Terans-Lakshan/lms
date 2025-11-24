@@ -5,6 +5,7 @@ import Header from "../../components/header";
 import Sidebar from "../../components/sidebar";
 import DegreeCard from "../../components/degreeCard";
 import CourseCard from "../../components/courseCard";
+import ContactInfo from "../../components/contactInfo";
 import degreeCardBg from "../../assets/degreecardbg.jpg";
 
 const MyCourses = () => {
@@ -41,9 +42,11 @@ const MyCourses = () => {
         `http://localhost:3000/api/notifications/${notificationId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      toast.success('Notification deleted successfully');
       fetchNotifications();
     } catch (error) {
       console.error('Error deleting notification:', error);
+      toast.error('Failed to delete notification');
     }
   };
 
@@ -268,9 +271,26 @@ const MyCourses = () => {
             </main>
 
         {/* Right Sidebar */}
-        <aside className={`bg-white border-l border-gray-200 p-6 overflow-auto transition-all duration-300 ${
+        <aside className={`bg-gradient-to-b from-teal-100 via-teal-50 to-emerald-50 border-l border-gray-200 p-6 overflow-auto transition-all duration-300 ${
           rightSidebarOpen ? "w-96" : "w-0 p-0 overflow-hidden"
         }`}>
+          {/* Toggle button for right sidebar when hidden */}
+          {!rightSidebarOpen && (
+            <button
+              onClick={() => setRightSidebarOpen(true)}
+              className="fixed right-4 top-24 bg-teal-500 text-white p-2 rounded-lg shadow-lg hover:bg-teal-600 z-10"
+              title="Show Notifications"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {notifications.filter(n => n.status === 'pending').length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                  {notifications.filter(n => n.status === 'pending').length}
+                </span>
+              )}
+            </button>
+          )}
           {rightSidebarOpen && (
             <>
               <div className="flex justify-between items-center mb-6">
@@ -348,7 +368,10 @@ const MyCourses = () => {
                             {new Date(notification.createdAt).toLocaleDateString()}
                           </span>
                           <button
-                            onClick={() => deleteNotification(notification._id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNotification(notification._id);
+                            }}
                             className="text-gray-400 hover:text-red-600 transition-colors"
                             title="Delete notification"
                           >
@@ -379,6 +402,7 @@ const MyCourses = () => {
           )}
         </aside>
       </div>
+      <ContactInfo />
     </div>
   );
 };

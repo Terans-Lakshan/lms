@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import Sidebar from "../../components/sidebar";
 import Header from "../../components/header";
 import RequestNotification from "../../components/requestNotification";
+import ContactInfo from "../../components/contactInfo";
 
 const AddDegreeProgram = () => {
   const navigate = useNavigate();
@@ -507,7 +508,7 @@ const AddDegreeProgram = () => {
                   {notifications.map((notification) => (
                     <RequestNotification
                       key={notification._id}
-                      notification={notification}
+                      notification={{...notification, onDelete: handleDeleteNotification}}
                       onAccept={(id) => handleEnrollmentRequest(id, 'accept')}
                       onReject={(id) => handleEnrollmentRequest(id, 'reject')}
                     />
@@ -518,6 +519,7 @@ const AddDegreeProgram = () => {
           )}
         </aside>
       </div>
+      <ContactInfo />
     </div>
   );
 };

@@ -8,6 +8,7 @@ import Header from "../../components/header";
 import Sidebar from "../../components/sidebar";
 import DegreeCard from "../../components/degreeCard";
 import CourseCard from "../../components/courseCard";
+import ContactInfo from "../../components/contactInfo";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -163,9 +164,11 @@ const StudentDashboard = () => {
         `http://localhost:3000/api/notifications/${notificationId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      toast.success('Notification deleted successfully');
       fetchNotifications(); // Refresh to show updated list
     } catch (error) {
       console.error('Error deleting notification:', error);
+      toast.error('Failed to delete notification');
     }
   };
 
@@ -453,7 +456,10 @@ const StudentDashboard = () => {
                             {new Date(notification.createdAt).toLocaleDateString()}
                           </span>
                           <button
-                            onClick={() => deleteNotification(notification._id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNotification(notification._id);
+                            }}
                             className="text-gray-400 hover:text-red-600 transition-colors"
                             title="Delete notification"
                           >
@@ -484,6 +490,7 @@ const StudentDashboard = () => {
           )}
         </aside>
       </div>
+      <ContactInfo />
     </div>
   );
 };

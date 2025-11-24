@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import Header from "../../components/header";
 import Sidebar from "../../components/sidebar";
 import RequestNotification from "../../components/requestNotification";
+import ContactInfo from "../../components/contactInfo";
 
 const ManageUsers = () => {
   const navigate = useNavigate();
@@ -88,6 +89,21 @@ const ManageUsers = () => {
     } catch (error) {
       console.error('Error handling request:', error);
       toast.error(error.response?.data?.message || 'Failed to process request');
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(
+        `http://localhost:3000/api/notifications/${notificationId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Notification deleted successfully');
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      toast.error('Failed to delete notification');
     }
   };
 
@@ -461,7 +477,7 @@ const ManageUsers = () => {
                   {notifications.map((notification) => (
                     <RequestNotification
                       key={notification._id}
-                      notification={notification}
+                      notification={{...notification, onDelete: handleDeleteNotification}}
                       onAccept={(id) => handleEnrollmentRequest(id, 'accept')}
                       onReject={(id) => handleEnrollmentRequest(id, 'reject')}
                     />
@@ -472,6 +488,7 @@ const ManageUsers = () => {
           )}
         </aside>
       </div>
+      <ContactInfo />
     </div>
   );
 };

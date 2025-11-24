@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import Header from "../../components/header";
 import Sidebar from "../../components/sidebar";
 import RequestNotification from "../../components/requestNotification";
+import ContactInfo from "../../components/contactInfo";
 
 const ManageDegree = () => {
   const [activeTab, setActiveTab] = useState("manage-degree");
@@ -45,6 +46,7 @@ const ManageDegree = () => {
     previewImage: "",
     adminNotes: ""
   });
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchData = async () => {
     try {
@@ -343,6 +345,21 @@ const ManageDegree = () => {
     }
   };
 
+  const handleDeleteNotification = async (notificationId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(
+        `http://localhost:3000/api/notifications/${notificationId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Notification deleted successfully');
+      await fetchData();
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      toast.error('Failed to delete notification');
+    }
+  };
+
   const navItems = [
     {
       type: "link",
@@ -609,6 +626,33 @@ const ManageDegree = () => {
               <div className="w-full max-w-6xl">
               {!editingDegree ? (
                 <div>
+                  
+                  {/* Search Bar */}
+                  {degreePrograms.length > 0 && (
+                    <div className="relative mb-6">
+                      <input
+                        type="text"
+                        placeholder="Search degree programs by name..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      />
+                      <svg
+                        className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                    </div>
+                  )}
+
                   {degreePrograms.length === 0 ? (
                     <div className="bg-white rounded-xl shadow-lg p-12 text-center">
                       <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -637,7 +681,14 @@ const ManageDegree = () => {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {degreePrograms.map((degree) => (
+                          {degreePrograms
+                            .filter((degree) => {
+                              if (searchQuery) {
+                                return degree.title.toLowerCase().includes(searchQuery.toLowerCase());
+                              }
+                              return true;
+                            })
+                            .map((degree) => (
                             <tr key={degree._id} className="hover:bg-gray-50">
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="text-sm font-medium text-gray-900">{degree.title}</div>
@@ -829,6 +880,33 @@ const ManageDegree = () => {
           {subTab === "remove-degree" && (
             <div className="flex justify-center">
               <div className="w-full max-w-6xl">
+              
+              {/* Search Bar */}
+              {degreePrograms.length > 0 && (
+                <div className="relative mb-6">
+                  <input
+                    type="text"
+                    placeholder="Search degree programs by name..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  />
+                  <svg
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
+              )}
+
               {degreePrograms.length === 0 ? (
                 <div className="bg-white rounded-xl shadow-lg p-12 text-center">
                   <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -868,7 +946,14 @@ const ManageDegree = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {degreePrograms.map((degree) => (
+                      {degreePrograms
+                        .filter((degree) => {
+                          if (searchQuery) {
+                            return degree.title.toLowerCase().includes(searchQuery.toLowerCase());
+                          }
+                          return true;
+                        })
+                        .map((degree) => (
                         <tr key={degree._id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">{degree.title}</div>
@@ -956,7 +1041,7 @@ const ManageDegree = () => {
                   {notifications.map((notification) => (
                     <RequestNotification
                       key={notification._id}
-                      notification={notification}
+                      notification={{...notification, onDelete: handleDeleteNotification}}
                       onAccept={(id) => handleEnrollmentRequest(id, 'accept')}
                       onReject={(id) => handleEnrollmentRequest(id, 'reject')}
                     />
@@ -967,6 +1052,7 @@ const ManageDegree = () => {
           )}
         </aside>
       </div>
+      <ContactInfo />
     </div>
   );
 };

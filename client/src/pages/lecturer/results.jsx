@@ -3,6 +3,7 @@ import axios from "axios";
 import Header from "../../components/header";
 import Sidebar from "../../components/sidebar";
 import LecturerDashboardSidebar from "../../components/lecturerDashboardSidebar";
+import ContactInfo from "../../components/contactInfo";
 
 const LecturerResults = () => {
   const [activeTab, setActiveTab] = useState("results");
@@ -131,6 +132,7 @@ const LecturerResults = () => {
           enrolledPrograms={enrolledPrograms}
         />
       </div>
+      <ContactInfo />
     </div>
   );
 };
