@@ -8,11 +8,7 @@ const RequestNotification = ({ notification, onAccept, onReject }) => {
     <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow mb-3 relative">
       {/* Request Type Badge + Delete Button */}
       <div className="flex items-start justify-between mb-3">
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-          isStudentRequest 
-            ? 'bg-blue-100 text-blue-700' 
-            : 'bg-purple-100 text-purple-700'
-        }`}>
+        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
           {requestType}
         </span>
         <button

@@ -1,0 +1,133 @@
+# GeoLMS - Project Requirements
+# ================================
+# This is a Node.js project. Dependencies are managed via npm (package.json).
+# Run `npm install` inside /server and /client to install all packages.
+#
+# For a full setup guide, see: docs/SETUP.md
+# ================================
+
+
+# ──────────────────────────────────────────────
+# SYSTEM REQUIREMENTS
+# ──────────────────────────────────────────────
+
+Node.js          >= 14.0.0   (https://nodejs.org)
+npm              >= 6.0.0    (bundled with Node.js)
+MongoDB          >= 4.4      (local) or MongoDB Atlas (cloud)
+Git              >= 2.0      (https://git-scm.com)
+
+
+# ──────────────────────────────────────────────
+# OPTIONAL EXTERNAL SERVICES
+# ──────────────────────────────────────────────
+
+AWS S3           -- File / material uploads
+Google OAuth 2.0 -- Social login (sign in with Google)
+Nodemailer / SMTP -- Email verification & password reset
+
+
+# ──────────────────────────────────────────────
+# BACKEND DEPENDENCIES  (server/package.json)
+# Install: cd server && npm install
+# ──────────────────────────────────────────────
+
+# Runtime dependencies
+aws-sdk                 ^2.1692.0   # AWS S3 file storage
+bcrypt                  ^6.0.0      # Password hashing
+cookie-parser           ^1.4.7      # Cookie parsing middleware
+cookie-session          ^2.1.1      # Cookie-based sessions
+cors                    ^2.8.5      # Cross-Origin Resource Sharing
+crypto                  ^1.0.1      # Cryptographic utilities
+dotenv                  ^17.2.3     # Environment variable loader
+express                 ^5.1.0      # Web framework
+express-session         ^1.18.2     # Server-side sessions
+jsonwebtoken            ^9.0.2      # JWT authentication
+mongoose                ^8.19.4     # MongoDB ODM
+multer                  ^2.0.2      # Multipart file uploads
+multer-s3               ^2.10.0     # Multer storage engine for S3
+nodemailer              ^7.0.10     # Email sending service
+passport                ^0.7.0      # Authentication middleware
+passport-google-oauth20 ^2.0.0      # Google OAuth 2.0 strategy
+
+# Dev dependencies
+nodemon                 ^3.1.11     # Auto-restart server on file changes
+
+
+# ──────────────────────────────────────────────
+# FRONTEND DEPENDENCIES  (client/package.json)
+# Install: cd client && npm install
+# ──────────────────────────────────────────────
+
+# Runtime dependencies
+@fullcalendar/daygrid   ^6.1.19     # Calendar day grid view
+@fullcalendar/interaction ^6.1.19   # Calendar drag & click interactions
+@fullcalendar/react     ^6.1.19     # FullCalendar React wrapper
+@fullcalendar/timegrid  ^6.1.19     # Calendar time grid view
+axios                   ^1.13.2     # HTTP client for API calls
+jwt-decode              ^4.0.0      # Decode JWT tokens on client
+prop-types              ^15.8.1     # Runtime prop type checking
+react                   ^19.2.0     # UI framework
+react-dom               ^19.2.0     # React DOM renderer
+react-hot-toast         ^2.6.0      # Toast notifications
+react-router-dom        ^7.9.6      # Client-side routing
+
+# Dev dependencies
+@eslint/js              ^9.39.1     # ESLint core JS rules
+@types/react            ^19.2.2     # TypeScript types for React
+@types/react-dom        ^19.2.2     # TypeScript types for React DOM
+@vitejs/plugin-react    ^5.1.0      # Vite plugin for React (Babel)
+autoprefixer            ^10.4.14    # PostCSS autoprefixer
+eslint                  ^9.39.1     # JavaScript linter
+eslint-plugin-react-hooks ^7.0.1    # ESLint rules for React hooks
+eslint-plugin-react-refresh ^0.4.24 # ESLint plugin for React Refresh
+globals                 ^16.5.0     # Global variable definitions
+postcss                 ^8.4.24     # CSS transformation tool
+tailwindcss             ^3.4.7      # Utility-first CSS framework
+vite                    ^7.2.2      # Build tool and dev server
+
+
+# ──────────────────────────────────────────────
+# ENVIRONMENT VARIABLES REQUIRED
+# ──────────────────────────────────────────────
+
+# server/.env
+PORT                    = 3000
+NODE_ENV                = development | production
+MONGO_URI               = mongodb://... or mongodb+srv://...
+JWT_SECRET              = <random 32+ char string>
+AWS_ACCESS_KEY_ID       = <from AWS IAM>
+AWS_SECRET_ACCESS_KEY   = <from AWS IAM>
+AWS_S3_BUCKET           = <bucket name>
+AWS_REGION              = us-east-1
+CORS_ORIGIN             = http://localhost:5174
+GOOGLE_CLIENT_ID        = <from Google Cloud Console>
+GOOGLE_CLIENT_SECRET    = <from Google Cloud Console>
+SENDGRID_API_KEY        = <from SendGrid>  (optional)
+
+# client/.env
+VITE_API_BASE_URL       = http://localhost:3000
+VITE_APP_NAME           = GeoLMS
+
+
+# ──────────────────────────────────────────────
+# QUICK START
+# ──────────────────────────────────────────────
+
+# 1. Clone repo
+#    git clone <repo-url> && cd GeoLMS
+
+# 2. Install backend
+#    cd server && npm install
+
+# 3. Install frontend
+#    cd ../client && npm install
+
+# 4. Configure env files (see above)
+
+# 5. Start backend (port 3000)
+#    cd server && npm run dev
+
+# 6. Start frontend (port 5174)
+#    cd client && npm run dev
+
+# Full instructions: docs/SETUP.md
