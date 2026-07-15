@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const cors = require('cors');
 const {test, registerUser, loginUser, getProfile,forgetPassword, resetPassword, verifyOtp, resendOtp, getAllUsers, getAllLecturers} = require('../controllers/authController');
+const { authenticateToken, isAdmin } = require('../middlewares/auth');
 
 
 router.use(cors({
@@ -19,7 +20,7 @@ router.post('/verify-otp', verifyOtp);
 router.post("/resend-otp", resendOtp);
 
 // Admin routes
-router.get("/users", getAllUsers);
-router.get("/lecturers", getAllLecturers);
+router.get("/users", authenticateToken, isAdmin, getAllUsers);
+router.get("/lecturers", authenticateToken, getAllLecturers);
 
 module.exports = router;

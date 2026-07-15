@@ -38,8 +38,8 @@ export default function Signup() {
 
         if (!data.email.trim()) errs.email = "Email is required";
         else if (!/^\S+@\S+\.\S+$/.test(data.email)) errs.email = "Invalid email";
-        else if (!data.email.endsWith("@sci.pdn.ac.lk"))
-            errs.email = "Only @sci.pdn.ac.lk emails are allowed";
+        // else if (!data.email.endsWith("@sci.pdn.ac.lk"))
+        //     errs.email = "Only @sci.pdn.ac.lk emails are allowed";
 
         if (!data.password) errs.password = "Password is required";
         if (!data.confirmPassword) errs.confirmPassword = "Please re-enter password";
@@ -146,7 +146,6 @@ export default function Signup() {
                     >
                         <option value="student">Student</option>
                         <option value="lecturer">Lecturer</option>
-                        <option value="admin">Admin</option>
                     </select>
 
                     <label className="text-sm font-medium text-gray-700 mb-1">Password</label>

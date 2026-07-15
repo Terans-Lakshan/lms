@@ -10,13 +10,22 @@ const app = express();
 
 //middleware
 app.use(cors({
-  origin: ['http://localhost:5174'],  // your React frontend origin
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:5173', 'http://localhost:5174'],
   credentials: true
 }));
 
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({extended: false}));
+
+// Routes
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/degree-programs', require('./routes/degreeProgramRoutes'));
+app.use('/api/courses', require('./routes/courseRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/upload', require('./routes/uploadRoutes'));
+app.use('/api/degree-details', require('./routes/degreeDetailsRoutes'));
+app.use('/api/enrollments', require('./routes/enrollmentRoutes'));
 
 const PORT = process.env.PORT || 3000;
 
@@ -36,13 +45,4 @@ function startServer(withDb = false) {
     console.log(`Server listening on port ${PORT}${withDb ? ' (with DB)' : ' (no DB)'}`);
   });
 }
-
-// Existing routes
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/degree-programs', require('./routes/degreeProgramRoutes'));
-app.use('/api/courses', require('./routes/courseRoutes'));
-app.use('/api/notifications', require('./routes/notificationRoutes'));
-app.use('/api/upload', require('./routes/uploadRoutes'));
-app.use('/api/degree-details', require('./routes/degreeDetailsRoutes'));
-app.use('/api/enrollments', require('./routes/enrollmentRoutes'));
 

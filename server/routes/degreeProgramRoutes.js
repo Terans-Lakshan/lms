@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const cors = require('cors');
-const { authenticateToken } = require('../middlewares/auth');
+const { authenticateToken, isAdmin } = require('../middlewares/auth');
 const {
     createDegreeProgram,
     updateDegreeProgram,
@@ -20,12 +20,12 @@ router.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:5174']
 }));
 
-router.post('/', createDegreeProgram);
-router.put('/:id', authenticateToken, updateDegreeProgram);
+router.post('/', authenticateToken, isAdmin, createDegreeProgram);
+router.put('/:id', authenticateToken, isAdmin, updateDegreeProgram);
 router.get('/', getAllDegreePrograms);
-router.post('/enroll', enrollInProgram);
-router.get('/enrollments/pending', getPendingEnrollments);
-router.post('/enrollments/update', updateEnrollmentStatus);
+router.post('/enroll', authenticateToken, enrollInProgram);
+router.get('/enrollments/pending', authenticateToken, isAdmin, getPendingEnrollments);
+router.post('/enrollments/update', authenticateToken, isAdmin, updateEnrollmentStatus);
 router.get('/enrollments/my-programs', authenticateToken, getMyEnrolledPrograms);
 router.get('/my-enrollments', authenticateToken, getMyEnrolledPrograms);
 router.get('/debug-degree-user', authenticateToken, async (req, res) => {

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const Sidebar = ({ sidebarOpen, activeTab, setActiveTab, navItems }) => {
   const [expandedItems, setExpandedItems] = useState({});
@@ -91,9 +92,9 @@ const Sidebar = ({ sidebarOpen, activeTab, setActiveTab, navItems }) => {
 
     // Link item
     return (
-      <a
+      <Link
         key={index}
-        href={item.href}
+        to={item.href}
         className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg hover:bg-gray-400"
         title={item.title}
       >
@@ -101,7 +102,7 @@ const Sidebar = ({ sidebarOpen, activeTab, setActiveTab, navItems }) => {
           {item.icon}
         </div>
         <span className="text-xs text-gray-700 text-center leading-tight">{item.title}</span>
-      </a>
+      </Link>
     );
   };
 

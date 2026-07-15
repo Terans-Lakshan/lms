@@ -75,7 +75,7 @@ exports.handleEnrollmentRequest = async (req, res) => {
           // Create new DegreeUser
           degreeUser = new DegreeUser({
             userId: notification.requester._id,
-            userName: notification.requester.name,
+            userName: `${notification.requester.name.first} ${notification.requester.name.last}`,
             userEmail: notification.requester.email,
             userRole: 'student',
             degrees: [{
@@ -130,7 +130,7 @@ exports.handleEnrollmentRequest = async (req, res) => {
           // Create new DegreeUser for lecturer
           degreeUser = new DegreeUser({
             userId: notification.requester._id,
-            userName: notification.requester.name,
+            userName: `${notification.requester.name.first} ${notification.requester.name.last}`,
             userEmail: notification.requester.email,
             userRole: 'lecturer',
             degrees: [{

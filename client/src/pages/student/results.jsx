@@ -14,19 +14,23 @@ const Results = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const userRes = await axios.get("/api/users/me");
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const userRes = await axios.get("/api/auth/profile", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setUser(userRes.data);
-        
-        // Fetch enrolled programs for this student
-        if (userRes.data.id) {
-          const programsRes = await axios.get(`/api/enrollments/my-programs?studentId=${userRes.data.id}`);
-          setEnrolledPrograms(programsRes.data);
-        }
+
+        const programsRes = await axios.get('/api/degree-programs/my-enrollments', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setEnrolledPrograms(programsRes.data);
       } catch (err) {
         console.log(err);
       }
     };
-    
+
     fetchData();
   }, []);
 

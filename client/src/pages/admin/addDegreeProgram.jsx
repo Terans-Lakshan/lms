@@ -11,6 +11,7 @@ import ContactInfo from "../../components/contactInfo";
 const AddDegreeProgram = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState({});
+  const [users, setUsers] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -27,6 +28,46 @@ const AddDegreeProgram = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [uploadedImageKey, setUploadedImageKey] = useState(null);
 
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const response = await axios.get('/api/notifications/admin', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNotifications(response.data);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const response = await axios.get('/api/auth/users', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`/api/notifications/${notificationId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Notification deleted');
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      toast.error('Failed to delete notification');
+    }
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -35,17 +76,17 @@ const AddDegreeProgram = () => {
           navigate('/login');
           return;
         }
-        
-        const response = await axios.get('http://localhost:3000/api/auth/profile', {
+
+        const response = await axios.get('/api/auth/profile', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        
+
         if (response.data.role !== 'admin') {
           toast.error('Access denied. Admin only.');
           navigate('/login');
           return;
         }
-        
+
         setUser(response.data);
       } catch (error) {
         console.error('Error fetching user:', error);
@@ -53,31 +94,17 @@ const AddDegreeProgram = () => {
       }
     };
 
-    const fetchNotifications = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        const response = await axios.get('http://localhost:3000/api/notifications/admin', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setNotifications(response.data);
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
-      }
-    };
-
     fetchUser();
     fetchNotifications();
     fetchUsers();
-  }, []);
+  }, [navigate]);
 
   const handleEnrollmentRequest = async (notificationId, action) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(
-        `http://localhost:3000/api/notifications/${notificationId}`,
-        { status: action === 'accept' ? 'accepted' : 'rejected' },
+      await axios.post(
+        '/api/notifications/handle-request',
+        { notificationId, action },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -132,15 +159,15 @@ const AddDegreeProgram = () => {
       formData.append('image', file);
 
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:3000/api/upload/upload', formData, {
+      const response = await axios.post('/api/upload/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${token}`
         }
       });
 
-      setFormData(prev => ({ ...prev, previewImage: response.data.imageUrl }));
-      setImagePreview(response.data.imageUrl);
+      setFormData(prev => ({ ...prev, previewImage: response.data.url }));
+      setImagePreview(response.data.url);
       setUploadedImageKey(response.data.key);
       toast.success('Image uploaded successfully!');
     } catch (error) {
@@ -155,7 +182,7 @@ const AddDegreeProgram = () => {
     if (uploadedImageKey) {
       try {
         const token = localStorage.getItem('token');
-        await axios.delete('http://localhost:3000/api/upload/delete', {
+        await axios.delete('/api/upload/delete', {
           headers: { Authorization: `Bearer ${token}` },
           data: { key: uploadedImageKey }
         });
@@ -239,7 +266,7 @@ const AddDegreeProgram = () => {
     setLoading(true);
     try {
       await axios.post(
-        "http://localhost:3000/api/degree-programs",
+        "/api/degree-programs",
         formData
       );
 

@@ -53,7 +53,7 @@ function SignupConfirmation() {
   const resendOtp = async () => {
     setResending(true);
     try {
-      const response = await axios.post('/resend-otp', { email });
+      const response = await axios.post('/api/auth/resend-otp', { email });
       
       if (response.data.error) {
         toast.error(response.data.error);

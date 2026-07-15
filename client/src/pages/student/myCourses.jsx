@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import axios from "axios";
+import toast from "react-hot-toast";
 import Header from "../../components/header";
 import Sidebar from "../../components/sidebar";
 import DegreeCard from "../../components/degreeCard";
@@ -26,7 +27,7 @@ const MyCourses = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await axios.get('http://localhost:3000/api/notifications/student', {
+      const response = await axios.get('/api/notifications/student', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(response.data);
@@ -39,7 +40,7 @@ const MyCourses = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.delete(
-        `http://localhost:3000/api/notifications/${notificationId}`,
+        `/api/notifications/${notificationId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success('Notification deleted successfully');

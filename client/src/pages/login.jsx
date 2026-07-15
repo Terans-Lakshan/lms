@@ -102,14 +102,13 @@ function Login() {
               </label>
 
               
-              <a href="#" className="text-sm text-emerald-600 hover:underline" onClick={()=> navigate("/ForgetPassword")  }>Forgot password?</a>
+              <a href="#" className="text-sm text-emerald-600 hover:underline" onClick={()=> navigate("/forgetpassword")}>Forgot password?</a>
             </div>
 
             <div className="space-y-3">
               <button
                 type="submit"
                 className="w-full inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-md shadow"
-                onClick={loginUser}  // double check this line
               >
                 Sign In
               </button>

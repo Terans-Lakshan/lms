@@ -85,7 +85,7 @@ const StudentDashboard = () => {
           }
           
           // Fetch notifications for this student
-          const notificationsRes = await axios.get('http://localhost:3000/api/notifications/student', {
+          const notificationsRes = await axios.get('/api/notifications/student', {
             headers: { Authorization: `Bearer ${token}` }
           });
           setNotifications(notificationsRes.data);
@@ -97,6 +97,12 @@ const StudentDashboard = () => {
           });
           const courseIds = enrollmentsRes.data.courses?.map(c => c.courseId._id || c.courseId) || [];
           setEnrolledCourseIds(courseIds);
+
+          // Fetch all degree programs first, then compute course statuses
+          const allProgramsRes = await axios.get('/api/degree-programs');
+          console.log('Degree programs received:', allProgramsRes.data);
+          setDegreePrograms(allProgramsRes.data);
+          setFilteredPrograms(allProgramsRes.data);
 
           // Fetch all courses from degree programs
           const allCourseIds = [];
@@ -125,29 +131,30 @@ const StudentDashboard = () => {
           setCourseStatuses(statuses);
         } catch (userErr) {
           console.log('User not logged in or profile fetch failed');
+          // Still fetch degree programs for unauthenticated view
+          try {
+            const allProgramsRes = await axios.get('/api/degree-programs');
+            setDegreePrograms(allProgramsRes.data);
+            setFilteredPrograms(allProgramsRes.data);
+          } catch (progErr) {
+            console.error('Error fetching degree programs:', progErr);
+          }
         }
         
-        // Fetch all degree programs (this should work without authentication)
-        console.log('Fetching degree programs...');
-        const allProgramsRes = await axios.get('/api/degree-programs');
-        console.log('Degree programs received:', allProgramsRes.data);
-        setDegreePrograms(allProgramsRes.data);
-        setFilteredPrograms(allProgramsRes.data);
-        
       } catch (err) {
-        console.error('Error fetching degree programs:', err);
+        console.error('Error in fetchData:', err);
       }
     };
-    
+
     fetchData();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, navigate]);
 
   const fetchNotifications = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await axios.get('http://localhost:3000/api/notifications/student', {
+      const response = await axios.get('/api/notifications/student', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(response.data);
@@ -161,7 +168,7 @@ const StudentDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.delete(
-        `http://localhost:3000/api/notifications/${notificationId}`,
+        `/api/notifications/${notificationId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success('Notification deleted successfully');
@@ -177,7 +184,7 @@ const StudentDashboard = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await axios.get('http://localhost:3000/api/degree-programs/my-enrollments', {
+      const response = await axios.get('/api/degree-programs/my-enrollments', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEnrolledPrograms(response.data);

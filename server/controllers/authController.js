@@ -12,9 +12,9 @@ const registerUser = async (req,res)=>{
     try{
         const {firstName,lastName,email,password,role} = req.body;
 
-        // Check if email is onlis20433@sci.pdn.ac.lk and assign admin role
+        // Check if email is s20433@sci.pdn.ac.lk and assign admin role
         let userRole = role;
-        if (email === 'onlis20433@sci.pdn.ac.lk') {
+        if (email === 's20433@sci.pdn.ac.lk') {
             userRole = 'admin';
         }
         // check if name was entered
@@ -29,7 +29,7 @@ const registerUser = async (req,res)=>{
         // check if email was entered
         const exist=await User.findOne({email});
         if(exist){
-            return res.json({message:"Email is taken Already"});
+            return res.status(409).json({message:"Email is taken Already"});
         }
         
         const hashedPassword=await hashPassword(password);
@@ -57,13 +57,13 @@ const registerUser = async (req,res)=>{
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: 'teranslakshan1@gmail.com',
-                pass: 'khqcagejzjlpxguf'
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
             }
         });
         
         const mailOptions = {
-            from: 'teranslakshan1@gmail.com',
+            from: process.env.EMAIL_USER,
             to: email,
             subject: 'Email Verification OTP - GeoLMS',
             html: `
@@ -157,20 +157,20 @@ const forgetPassword = async (req, res) => {
 
         // Generate reset token
         const token = jwt.sign({email: user.email, id: user._id}, process.env.JWT_SECRET, {expiresIn: '15m'});
-        const resetLink = `http://localhost:5173/reset-password?token=${token}`;
+        const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5174'}/reset-password?token=${token}`;
 
         // Configure email transporter
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: 'teranslakshan1@gmail.com',
-                pass: 'khqcagejzjlpxguf'
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
             }
         });
 
         // Email options
         const mailOptions = {
-            from: 'teranslakshan1@gmail.com',
+            from: process.env.EMAIL_USER,
             to: email,
             subject: 'Password Reset Request - GeoLMS',
             html: `
@@ -287,13 +287,13 @@ const resendOtp = async (req, res) => {
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: 'teranslakshan1@gmail.com',
-                pass: 'khqcagejzjlpxguf'
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
             }
         });
         
         const mailOptions = {
-            from: 'teranslakshan1@gmail.com',
+            from: process.env.EMAIL_USER,
             to: email,
             subject: 'Email Verification OTP - GeoLMS',
             html: `
