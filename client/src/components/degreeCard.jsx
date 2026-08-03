@@ -15,19 +15,56 @@ const DegreeCard = ({ degree = {}, userRole = '', onEnrollmentSuccess, enrolledP
     (enroll) => enroll.degreeProgram && (enroll.degreeProgram._id === degree._id || enroll.degreeProgram === degree._id)
   );
 
-  const fetchLecturers = async () => {
-    setLoadingLecturers(true);
-    try {
-      const response = await axios.get('http://localhost:3000/api/auth/lecturers');
-      setLecturers(response.data);
-    } catch (error) {
-      console.error('Error fetching lecturers:', error);
-      toast.error('Failed to load lecturers');
-    } finally {
-      setLoadingLecturers(false);
-    }
-  };
+  // const fetchLecturers = async () => {
+  //   setLoadingLecturers(true);
+  //   try {
+  //     const response = await axios.get('http://localhost:3000/api/auth/lecturers');
+  //     setLecturers(response.data);
+  //   } catch (error) {
+  //     console.error('Error fetching lecturers:', error);
+  //     toast.error('Failed to load lecturers');
+  //   } finally {
+  //     setLoadingLecturers(false);
+  //   }
+  // };
+const isLecturerAssigned = (lecturerId) => {
+  return degree.lecturers?.some(
+    (lecturer) =>
+      (lecturer._id || lecturer).toString() === lecturerId.toString()
+  );
+};
 
+  const fetchLecturers = async () => {
+  setLoadingLecturers(true);
+
+  try {
+    const token = localStorage.getItem('token');
+
+    const response = await axios.get(
+      'http://localhost:3000/api/auth/lecturers',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    console.log("Lecturer list:", response.data);
+
+    setLecturers(response.data);
+
+  } catch (error) {
+    console.error(
+      'Error fetching lecturers:',
+      error.response?.data || error.message
+    );
+
+    toast.error('Failed to load lecturers');
+
+  } finally {
+    setLoadingLecturers(false);
+  }
+};
   const handleAssignLecturer = async (lecturerId) => {
     setAssigningLecturer(true);
     try {
@@ -248,12 +285,29 @@ const DegreeCard = ({ degree = {}, userRole = '', onEnrollmentSuccess, enrolledP
                         <p className="text-sm text-gray-600">{lecturer.email}</p>
                         <p className="text-xs text-gray-500 mt-1">Reg No: {lecturer.registrationNo}</p>
                       </div>
-                      <button
+                      {/* <button
                         onClick={() => handleAssignLecturer(lecturer._id)}
                         disabled={assigningLecturer}
                         className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {assigningLecturer ? 'Assigning...' : 'Assign'}
+                      </button> */}
+                      <button
+                        onClick={() => handleAssignLecturer(lecturer._id)}
+                        disabled={assigningLecturer || isLecturerAssigned(lecturer._id)}
+                        className={`px-4 py-2 rounded-lg transition ${
+                        isLecturerAssigned(lecturer._id)
+                          ? 'bg-gray-400 text-white cursor-not-allowed'
+                          : 'bg-teal-600 text-white hover:bg-teal-700'
+                        }`}
+                        >
+                        {
+                        assigningLecturer
+                          ? 'Assigning...'
+                          : isLecturerAssigned(lecturer._id)
+                            ? 'Assigned'
+                            : 'Assign'
+                        }
                       </button>
                     </div>
                   ))}

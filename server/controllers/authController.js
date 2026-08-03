@@ -2,11 +2,55 @@ const User = require('../models/user.js');
 const DegreeUser = require('../models/degreeUser.js');
 const { hashPassword,comparePassword } = require('../middlewares/auth.js');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
+//const nodemailer = require('nodemailer');
+const axios = require('axios');
 
 const test = (req,res)=>{
     res.send("Auth route working");
 }
+
+const sendResetPasswordLinkEmail = async(email, resetLink, name)=>{
+
+}
+// using Google script to send email instead of nodemailer
+const sendOTPEmail = async(email, otp, firstName)=>{
+
+    try{
+
+        if(!process.env.GOOGLE_SCRIPT_URL){
+            throw new Error("GOOGLE_SCRIPT_URL missing in .env");
+        }
+
+        const response = await axios.post(
+            process.env.GOOGLE_SCRIPT_URL,
+            {
+                email,
+                otp,
+                name: firstName
+            }
+        );
+
+        console.log("Google mail response:", response.data);
+
+        return response.data;
+
+    }
+    catch(error){
+
+        console.log("Google mail error:");
+
+        if(error.response){
+            console.log("Status:", error.response.status);
+            console.log("Data:", error.response.data);
+        }
+        else{
+            console.log(error.message);
+        }
+
+        throw error;
+    }
+
+};
 
 const registerUser = async (req,res)=>{
     try{
@@ -39,7 +83,7 @@ const registerUser = async (req,res)=>{
         
         // Generate 6-digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
         
         // Create user with unverified status
         const user=await User.create({
@@ -54,33 +98,40 @@ const registerUser = async (req,res)=>{
         });
         
         // Send OTP email
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
-        });
+        // const transporter = nodemailer.createTransport({
+        //     service: 'gmail',
+        //     auth: {
+        //         user: process.env.EMAIL_USER,
+        //         pass: process.env.EMAIL_PASS
+        //     }
+        // });
         
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: 'Email Verification OTP - GeoLMS',
-            html: `
-                <h2>Welcome to GeoLMS!</h2>
-                <p>Hello ${firstName},</p>
-                <p>Thank you for signing up. Your OTP for email verification is:</p>
-                <div style="background-color: #f0f0f0; padding: 15px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #10b981; margin: 20px 0;">
-                    ${otp}
-                </div>
-                <p>This OTP will expire in 10 minutes.</p>
-                <p>If you didn't sign up for this account, please ignore this email.</p>
-            `
-        };
+        // const mailOptions = {
+        //     from: process.env.EMAIL_USER,
+        //     to: email,
+        //     subject: 'Email Verification OTP - GeoLMS',
+        //     html: `
+        //         <h2>Welcome to GeoLMS!</h2>
+        //         <p>Hello ${firstName},</p>
+        //         <p>Thank you for signing up. Your OTP for email verification is:</p>
+        //         <div style="background-color: #f0f0f0; padding: 15px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #10b981; margin: 20px 0;">
+        //             ${otp}
+        //         </div>
+        //         <p>This OTP will expire in 5 minutes.</p>
+        //         <p>If you didn't sign up for this account, please ignore this email.</p>
+        //     `
+        // };
         
-        await transporter.sendMail(mailOptions);
-        console.log('OTP sent to:', email);
-        
+        // await transporter.sendMail(mailOptions);
+        // console.log('OTP sent to:', email);
+        // new add
+        await sendOTPEmail(
+            email,
+            otp,
+            firstName
+        );
+        console.log("OTP sent through Google Script:", email);
+        // new add close
         res.status(201).json({message: "Registration successful! Please check your email for OTP.", email});
     } catch (error) {
         console.log(error);
@@ -160,13 +211,13 @@ const forgetPassword = async (req, res) => {
         const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5174'}/reset-password?token=${token}`;
 
         // Configure email transporter
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
-        });
+        // const transporter = nodemailer.createTransport({
+        //     service: 'gmail',
+        //     auth: {
+        //         user: process.env.EMAIL_USER,
+        //         pass: process.env.EMAIL_PASS
+        //     }
+        // });
 
         // Email options
         const mailOptions = {
@@ -182,6 +233,11 @@ const forgetPassword = async (req, res) => {
                 <p>If you didn't request this, please ignore this email.</p>
             `
         };
+        await sendResetPasswordLinkEmail(
+            email,
+            resetLink,
+            user.name.first
+        );
 
         // Send email
         await transporter.sendMail(mailOptions);
@@ -284,13 +340,13 @@ const resendOtp = async (req, res) => {
         await user.save();
         
         // Send OTP email
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
-        });
+        // const transporter = nodemailer.createTransport({
+        //     service: 'gmail',
+        //     auth: {
+        //         user: process.env.EMAIL_USER,
+        //         pass: process.env.EMAIL_PASS
+        //     }
+        // });
         
         const mailOptions = {
             from: process.env.EMAIL_USER,
@@ -307,8 +363,13 @@ const resendOtp = async (req, res) => {
             `
         };
         
-        await transporter.sendMail(mailOptions);
-        console.log('New OTP sent to:', email);
+        // await transporter.sendMail(mailOptions);
+        // console.log('New OTP sent to:', email);
+        await sendOTPEmail(
+            email,
+            otp,
+            user.name.first
+        );
 
         res.status(200).json({ message: "New OTP sent to your email" });
     } catch (error) {

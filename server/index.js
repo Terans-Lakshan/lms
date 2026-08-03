@@ -5,7 +5,6 @@ const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
 
 dotenv.config();
-
 const app = express();
 
 //middleware
@@ -14,9 +13,16 @@ app.use(cors({
   credentials: true
 }));
 
+
+
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({extended: false}));
+
+app.get("/", (req, res) => {
+    console.log("Root route called");
+    res.send("GeoLMS Backend Running");
+});
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
@@ -30,15 +36,22 @@ app.use('/api/enrollments', require('./routes/enrollmentRoutes'));
 const PORT = process.env.PORT || 3000;
 
 // Database connection
-mongoose.connect(process.env.MONGO_URI)
-.then(() => {
-  console.log('Connected to MongoDB');
-  startServer(true);
-})
-.catch((err) => {
-  console.log('Failed to connect to MongoDB', err);
+const mongoUri = process.env.MONGO_URI;
+
+if (!mongoUri) {
+  console.warn('MONGO_URI is not set. Starting server without database connection.');
   startServer(false);
-});
+} else {
+  mongoose.connect(mongoUri)
+    .then(() => {
+      console.log('Connected to MongoDB');
+      startServer(true);
+    })
+    .catch((err) => {
+      console.log('Failed to connect to MongoDB', err);
+      startServer(false);
+    });
+}
 
 function startServer(withDb = false) {
   app.listen(PORT, () => {

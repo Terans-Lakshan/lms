@@ -13,8 +13,9 @@ const s3 = new aws.S3({
 });
 
 const s3Uploadv2 = async (files) => {
+  const bucketName = (process.env.AWS_S3_BUCKET_NAME || process.env.AWS_BUCKET_NAME || 'geo-lms').trim();
   const params = files.map((file) => ({
-    Bucket: process.env.AWS_BUCKET_NAME,
+    Bucket: bucketName,
     Key: `uploads/${uuid()}-${file.originalname}`,
     Body: file.buffer,
   }));
@@ -47,8 +48,12 @@ const uploadFiles = async (req, res) => {
 
 const getImage = (req, res) => {
   const key = req.params.key;
-  const Bucket = process.env.AWS_BUCKET_NAME;
-  const region = process.env.AWS_REGION;
+  const Bucket = (process.env.AWS_S3_BUCKET_NAME || process.env.AWS_BUCKET_NAME || 'geo-lms').trim();
+  const region = (process.env.AWS_REGION || 'us-east-1').trim();
+
+  if (!key) {
+    return res.status(400).json({ message: 'Image key is required' });
+  }
 
   const imageUrl = `https://${Bucket}.s3.${region}.amazonaws.com/${key}`;
 
@@ -65,10 +70,12 @@ const getImage = (req, res) => {
 const uploadLargeFile = (req, res) => {
   try {
     const bb = busboy({ headers: req.headers });
+    const bucketName = (process.env.AWS_S3_BUCKET_NAME || process.env.AWS_BUCKET_NAME || 'geo-lms').trim();
 
     let projectName = '';
     let fileCount = 0;
     const uploadPromises = [];
+    let hasError = false;
 
     bb.on('field', (name, value) => {
       if (name === 'projectName') {
@@ -86,7 +93,7 @@ const uploadLargeFile = (req, res) => {
 
       fileCount++;
       const s3Key = `uploads/projects/${projectName}/${Date.now()}-${filename}`;
-      const params = { Bucket: process.env.AWS_BUCKET_NAME, Key: s3Key, Body: file, ContentType: mimeType };
+      const params = { Bucket: bucketName, Key: s3Key, Body: file, ContentType: mimeType };
 
       const uploadPromise = s3.upload(params).promise().then((data) => ({
         originalName: filename,
@@ -97,7 +104,17 @@ const uploadLargeFile = (req, res) => {
       uploadPromises.push(uploadPromise);
     });
 
+    bb.on('error', (error) => {
+      console.error('Busboy error:', error);
+      hasError = true;
+      if (!res.headersSent) {
+        res.status(400).json({ status: 'error', message: 'Request parsing error', error: error.message });
+      }
+    });
+
     bb.on('close', async () => {
+      if (hasError || res.headersSent) return;
+      
       if (!projectName) {
         return res.status(400).json({ status: 'error', message: 'projectName is required.' });
       }
@@ -120,7 +137,8 @@ const uploadLargeFile = (req, res) => {
 
 const getAllProjects = async (req, res) => {
   try {
-    const params = { Bucket: process.env.AWS_BUCKET_NAME, Prefix: 'uploads/projects/', Delimiter: '/' };
+    const bucketName = (process.env.AWS_S3_BUCKET_NAME || process.env.AWS_BUCKET_NAME || 'geo-lms').trim();
+    const params = { Bucket: bucketName, Prefix: 'uploads/projects/', Delimiter: '/' };
     const data = await s3.listObjectsV2(params).promise();
     const projects = data.CommonPrefixes?.map(p => p.Prefix.replace('uploads/projects/', '').replace('/', '')) || [];
     return res.json({ status: 'success', projects });
@@ -136,13 +154,16 @@ const getProjectFiles = async (req, res) => {
     if (!projectName) {
       return res.status(400).json({ status: 'error', message: 'Project name required' });
     }
-    const params = { Bucket: process.env.AWS_BUCKET_NAME, Prefix: `uploads/projects/${projectName}/` };
+    const bucketName = (process.env.AWS_S3_BUCKET_NAME || process.env.AWS_BUCKET_NAME || 'geo-lms').trim();
+    const params = { Bucket: bucketName, Prefix: `uploads/projects/${projectName}/` };
     const data = await s3.listObjectsV2(params).promise();
-    const files = data.Contents
+    
+    // Safely handle Contents array
+    const files = (data.Contents || [])
       .filter(item => item.Key !== params.Prefix)
       .map(item => ({
         fileName: item.Key.replace(params.Prefix, ''),
-        url: s3.getSignedUrl('getObject', { Bucket: process.env.AWS_BUCKET_NAME, Key: item.Key, Expires: 3600 })
+        url: s3.getSignedUrl('getObject', { Bucket: bucketName, Key: item.Key, Expires: 3600 })
       }));
     res.json({ status: 'success', files });
   } catch (error) {
