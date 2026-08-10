@@ -1,15 +1,22 @@
-const express = require('express');
-const router = express.Router();
-const {
-  getAdminNotifications,
-  handleEnrollmentRequest,
-  createEnrollmentRequest,
-  createTeachRequest,
-  getStudentNotifications,
-  getLecturerNotifications,
-  deleteNotification
-} = require('../controllers/notificationController');
-const { authenticateToken, isAdmin } = require('../middlewares/auth');
+// const express = require('express');
+// const router = express.Router();
+// const {
+//   getAdminNotifications,
+//   handleEnrollmentRequest,
+//   createEnrollmentRequest,
+//   createTeachRequest,
+//   getStudentNotifications,
+//   getLecturerNotifications,
+//   deleteNotification
+// } = require('../controllers/notificationController');
+// const { authenticateToken, isAdmin } = require('../middlewares/auth');
+
+import express from 'express';
+import { getAdminNotifications, handleEnrollmentRequest, createEnrollmentRequest, createTeachRequest, getStudentNotifications, getLecturerNotifications, deleteNotification } from '../controllers/notificationController.js';
+import { authenticateToken, isAdmin } from '../middlewares/auth.js';
+import { Router } from 'express';
+
+const router = Router();
 
 // Student routes
 router.post('/enrollment-request', authenticateToken, createEnrollmentRequest);
@@ -26,4 +33,4 @@ router.delete('/:id', authenticateToken, deleteNotification);
 router.get('/admin', authenticateToken, isAdmin, getAdminNotifications);
 router.post('/handle-request', authenticateToken, isAdmin, handleEnrollmentRequest);
 
-module.exports = router;
+export default router;

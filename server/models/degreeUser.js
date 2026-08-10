@@ -1,4 +1,5 @@
-const mongoose = require('mongoose');
+//const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const degreeUserSchema = new mongoose.Schema({
     userId: {
@@ -63,4 +64,4 @@ degreeUserSchema.pre('save', function(next) {
     next();
 });
 
-module.exports = mongoose.model('DegreeUser', degreeUserSchema);
+export default mongoose.model('DegreeUser', degreeUserSchema);

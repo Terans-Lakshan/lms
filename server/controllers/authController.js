@@ -1,19 +1,28 @@
-const User = require('../models/user.js');
-const DegreeUser = require('../models/degreeUser.js');
-const { hashPassword,comparePassword } = require('../middlewares/auth.js');
-const jwt = require('jsonwebtoken');
-//const nodemailer = require('nodemailer');
-const axios = require('axios');
+// const User = require('../models/user.js');
+// const DegreeUser = require('../models/degreeUser.js');
+// const { hashPassword,comparePassword } = require('../middlewares/auth.js');
+// const jwt = require('jsonwebtoken');
+// //const nodemailer = require('nodemailer');
+// const axios = require('axios');
 
-const test = (req,res)=>{
+import User from '../models/User.js';
+import DegreeUser from '../models/degreeUser.js';
+import {comparePassword,hashPassword} from '../middlewares/auth.js';
+//import hashPassword from '../middlewares/auth.js';
+import jwt from 'jsonwebtoken';
+import axios from 'axios';
+
+
+
+export const test = (req,res)=>{
     res.send("Auth route working");
 }
 
-const sendResetPasswordLinkEmail = async(email, resetLink, name)=>{
+export const sendResetPasswordLinkEmail = async(email, resetLink, name)=>{
 
 }
 // using Google script to send email instead of nodemailer
-const sendOTPEmail = async(email, otp, firstName)=>{
+export const sendOTPEmail = async(email, otp, firstName)=>{
 
     try{
 
@@ -52,7 +61,7 @@ const sendOTPEmail = async(email, otp, firstName)=>{
 
 };
 
-const registerUser = async (req,res)=>{
+export const registerUser = async (req,res)=>{
     try{
         const {firstName,lastName,email,password,role} = req.body;
 
@@ -92,6 +101,7 @@ const registerUser = async (req,res)=>{
             registrationNo,
             password: hashedPassword,
             role: userRole,
+            googleId:null,
             isVerified: false,
             otp,
             otpExpires
@@ -139,7 +149,7 @@ const registerUser = async (req,res)=>{
     }
 }
 
-const loginUser = async (req, res) => {
+export const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;   
         const user = await User.findOne({ email });
@@ -167,7 +177,7 @@ const loginUser = async (req, res) => {
     }
 }
 
-const getProfile = async (req, res) => {
+export const getProfile = async (req, res) => {
     try {
         // Check for token in cookies or Authorization header
         let token = req.cookies.token;
@@ -196,7 +206,7 @@ const getProfile = async (req, res) => {
 
 
 
-const forgetPassword = async (req, res) => {
+export const forgetPassword = async (req, res) => {
     const { email } = req.body;
 
     try {
@@ -250,7 +260,7 @@ const forgetPassword = async (req, res) => {
     }
 }
 
-const resetPassword = async (req, res) => {
+export const resetPassword = async (req, res) => {
     const { token, password } = req.body;
 
     try {
@@ -280,7 +290,7 @@ const resetPassword = async (req, res) => {
     }
 }
 
-const verifyOtp = async (req, res) => {
+export const verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
 
     try {
@@ -318,7 +328,7 @@ const verifyOtp = async (req, res) => {
     }
 }
 
-const resendOtp = async (req, res) => {
+export const resendOtp = async (req, res) => {
     const { email } = req.body;
 
     try {
@@ -379,7 +389,7 @@ const resendOtp = async (req, res) => {
 }
 
 // Get all users (admin only)
-const getAllUsers = async (req, res) => {
+export const getAllUsers = async (req, res) => {
   try {
     console.log('Fetching all users...');
     const users = await User.find()
@@ -422,7 +432,7 @@ const getAllUsers = async (req, res) => {
 };
 
 // Get all lecturers (admin only)
-const getAllLecturers = async (req, res) => {
+export const getAllLecturers = async (req, res) => {
   try {
     const lecturers = await User.find({ role: 'lecturer', isVerified: true })
       .select('name email registrationNo')
@@ -434,5 +444,4 @@ const getAllLecturers = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
-module.exports = {test, registerUser, loginUser, getProfile, forgetPassword, resetPassword, verifyOtp, resendOtp, getAllUsers, getAllLecturers};
+// export default { test, registerUser, loginUser, getProfile, forgetPassword, resetPassword, verifyOtp, resendOtp, getAllUsers, getAllLecturers };

@@ -1,15 +1,20 @@
-const express = require('express');
+// const express = require('express');
+// const router = express.Router();
+// const cors = require('cors');
+// const { authenticateToken } = require('../middlewares/auth');
+// const {
+//     runMigration,
+//     getStudentDegreeDetails,
+//     getMyDegreeDetails,
+//     syncStudent,
+//     addCourse,
+//     removeCourse
+// } = require('../controllers/degreeDetailsController');
+import { runMigration, getStudentDegreeDetails, getMyDegreeDetails, syncStudent, addCourse, removeCourse } from '../controllers/degreeDetailsController.js';
+import { authenticateToken } from '../middlewares/auth.js';
+import express from 'express';
+import cors from 'cors';
 const router = express.Router();
-const cors = require('cors');
-const { authenticateToken } = require('../middlewares/auth');
-const {
-    runMigration,
-    getStudentDegreeDetails,
-    getMyDegreeDetails,
-    syncStudent,
-    addCourse,
-    removeCourse
-} = require('../controllers/degreeDetailsController');
 
 router.use(cors({
     credentials: true,
@@ -34,4 +39,4 @@ router.post('/add-course', authenticateToken, addCourse);
 // Remove course from student's degree (Admin only)
 router.post('/remove-course', authenticateToken, removeCourse);
 
-module.exports = router;
+export default router;

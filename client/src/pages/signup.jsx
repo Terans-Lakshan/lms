@@ -80,9 +80,9 @@ export default function Signup() {
     
     
     // Google OAuth signup handler
-    const onGoogleSignup = () => {
-        window.location.href = "http://localhost:3000/google";
-    };
+    // const onGoogleSignup = () => {
+    //     window.location.href = "http://localhost:5000/google";
+    // };
     
 
     return (
@@ -133,7 +133,7 @@ export default function Signup() {
                         value={data.email}
                         onChange={onChange}
                         className="h-10 px-3 rounded-md border border-gray-200 text-sm"
-                        placeholder="sxxxxx@sci.pdn.ac.lk"
+                        placeholder="Enter your email address"
                     />
                     {errors.email && <div className="text-red-600 text-xs">{errors.email}</div>}
 
@@ -179,7 +179,7 @@ export default function Signup() {
                     </button>
                 </form>
 
-                <div className="text-center mt-3 mb-2 text-gray-500 text-sm">or</div>
+                {/* <div className="text-center mt-3 mb-2 text-gray-500 text-sm">or</div>
 
                 
                 <button
@@ -188,7 +188,7 @@ export default function Signup() {
                 >
                     <img src={Googleicon} className="h-4 w-4" alt="Google" />
                     <span className="font-semibold text-sm">Sign up with Google</span>
-                </button>
+                </button> */}
                 
 
                 <div className="mt-4 text-center text-gray-500 text-sm">

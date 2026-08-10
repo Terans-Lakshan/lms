@@ -1,9 +1,16 @@
-const express = require('express');
-const router = express.Router();
-const cors = require('cors');
-const {test, registerUser, loginUser, getProfile,forgetPassword, resetPassword, verifyOtp, resendOtp, getAllUsers, getAllLecturers} = require('../controllers/authController');
-const { authenticateToken, isAdmin } = require('../middlewares/auth');
+// const express = require('express');
+// const router = express.Router();
+// const cors = require('cors');
+// const {test, registerUser, loginUser, getProfile,forgetPassword, resetPassword, verifyOtp, resendOtp, getAllUsers, getAllLecturers} = require('../controllers/authController');
+// const { authenticateToken, isAdmin } = require('../middlewares/auth');
 
+import express from 'express';
+import { test,registerUser, loginUser, getProfile, forgetPassword, resetPassword, verifyOtp, resendOtp, getAllUsers, getAllLecturers } from '../controllers/authController.js';
+import { authenticateToken, isAdmin } from '../middlewares/auth.js';
+import cors from 'cors';
+import { Router } from 'express';
+
+const router = Router();
 
 router.use(cors({
     credentials: true,
@@ -23,4 +30,6 @@ router.post("/resend-otp", resendOtp);
 router.get("/users", authenticateToken, isAdmin, getAllUsers);
 router.get("/lecturers", authenticateToken, getAllLecturers);
 
-module.exports = router;
+
+
+export default router;

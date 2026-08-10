@@ -1,5 +1,6 @@
 // models/Course.js
-const mongoose = require("mongoose");
+// const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const CourseSchema = new mongoose.Schema({
   title: String,
   code: String,
@@ -23,4 +24,5 @@ const CourseSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
   }],
 });
-module.exports = mongoose.model("Course", CourseSchema);
+// module.exports = mongoose.model("Course", CourseSchema);
+export default mongoose.model("Course", CourseSchema);

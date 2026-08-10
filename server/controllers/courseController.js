@@ -1,7 +1,10 @@
-const Course = require('../models/course.js');
-const DegreeProgram = require('../models/degreeProgramme.js');
+// const Course = require('../models/course.js');
+// const DegreeProgram = require('../models/degreeProgramme.js');
 
-const addMaterialLink = async (req, res) => {
+import Course from '../models/course.js';
+import DegreeProgram from '../models/degreeProgramme.js';
+
+export const addMaterialLink = async (req, res) => {
     try {
         const { courseId, link, degreeCode, courseCode } = req.body;
 
@@ -44,7 +47,7 @@ const addMaterialLink = async (req, res) => {
     }
 };
 
-const updateCourse = async (req, res) => {
+export const updateCourse = async (req, res) => {
     try {
         const { id } = req.params;
         const { title, code, credit, description } = req.body;
@@ -81,7 +84,7 @@ const updateCourse = async (req, res) => {
     }
 };
 
-const getCourse = async (req, res) => {
+export const getCourse = async (req, res) => {
     try {
         const { id } = req.params;
         const course = await Course.findById(id);
@@ -97,7 +100,7 @@ const getCourse = async (req, res) => {
     }
 };
 
-const getAllCourses = async (req, res) => {
+export const getAllCourses = async (req, res) => {
     try {
         const courses = await Course.find();
         res.status(200).json(courses);
@@ -107,7 +110,7 @@ const getAllCourses = async (req, res) => {
     }
 };
 
-const deleteCourse = async (req, res) => {
+export const deleteCourse = async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -136,7 +139,14 @@ const deleteCourse = async (req, res) => {
     }
 };
 
-module.exports = {
+// module.exports = {
+//     addMaterialLink,
+//     updateCourse,
+//     getCourse,
+//     getAllCourses,
+//     deleteCourse
+// };
+export default {
     addMaterialLink,
     updateCourse,
     getCourse,

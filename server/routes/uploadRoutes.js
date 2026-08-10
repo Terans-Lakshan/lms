@@ -1,8 +1,16 @@
-const express = require('express');
-const router = express.Router();
-const { upload, s3, createUploadMiddleware, createS3Folder, deleteS3Object, deleteS3Folder } = require('../config/s3');
-const { authenticateToken } = require('../middlewares/auth');
-const Course = require('../models/course');
+// const express = require('express');
+// const router = express.Router();
+// const { upload, s3, createUploadMiddleware, createS3Folder, deleteS3Object, deleteS3Folder } = require('../config/s3');
+// const { authenticateToken } = require('../middlewares/auth');
+// const Course = require('../models/course');
+
+import express from 'express';
+import { upload, s3, createUploadMiddleware, createS3Folder, deleteS3Object, deleteS3Folder } from '../config/s3.js';
+import { authenticateToken } from '../middlewares/auth.js';
+import Course from '../models/course.js';
+import { Router } from 'express';
+
+const router = Router();
 
 console.log('Upload routes module loaded');
 
@@ -286,4 +294,4 @@ router.delete('/delete-course-folder', authenticateToken, async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

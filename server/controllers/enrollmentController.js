@@ -1,11 +1,17 @@
-const CourseUser = require('../models/courseUser');
-const Course = require('../models/course');
-const User = require('../models/user');
-const Notification = require('../models/notification');
-const DegreeProgram = require('../models/degreeProgramme');
+// const CourseUser = require('../models/courseUser');
+// const Course = require('../models/course');
+// const User = require('../models/user');
+// const Notification = require('../models/notification');
+// const DegreeProgram = require('../models/degreeProgramme');
+
+import CourseUser from '../models/courseUser.js';
+import Course from '../models/course.js';
+import User from '../models/user.js';
+import Notification from '../models/notification.js';
+import DegreeProgram from '../models/degreeProgramme.js';
 
 // Request enrollment in a course (creates notification for lecturers)
-const enrollInCourse = async (req, res) => {
+export const enrollInCourse = async (req, res) => {
   try {
     const { courseId } = req.body;
     const userId = req.user.id;
@@ -96,7 +102,7 @@ const enrollInCourse = async (req, res) => {
 };
 
 // Unenroll from a course
-const unenrollFromCourse = async (req, res) => {
+export const unenrollFromCourse = async (req, res) => {
   try {
     const { courseId } = req.body;
     const userId = req.user.id;
@@ -132,7 +138,7 @@ const unenrollFromCourse = async (req, res) => {
 };
 
 // Get user's enrolled courses
-const getEnrolledCourses = async (req, res) => {
+export const getEnrolledCourses = async (req, res) => {
   try {
     const userId = req.user.id;
 
@@ -154,7 +160,7 @@ const getEnrolledCourses = async (req, res) => {
 };
 
 // Get enrollment status for a specific course
-const getCourseEnrollmentStatus = async (req, res) => {
+export const getCourseEnrollmentStatus = async (req, res) => {
   try {
     const { courseId } = req.params;
     const userId = req.user.id;
@@ -183,7 +189,7 @@ const getCourseEnrollmentStatus = async (req, res) => {
 };
 
 // Handle course enrollment approval/rejection by lecturer
-const handleCourseEnrollmentRequest = async (req, res) => {
+export const handleCourseEnrollmentRequest = async (req, res) => {
   try {
     const { notificationId, action } = req.body;
     const lecturerId = req.user.id;
@@ -270,7 +276,14 @@ const handleCourseEnrollmentRequest = async (req, res) => {
   }
 };
 
-module.exports = {
+// module.exports = {
+//   enrollInCourse,
+//   unenrollFromCourse,
+//   getEnrolledCourses,
+//   getCourseEnrollmentStatus,
+//   handleCourseEnrollmentRequest
+// };
+export default {
   enrollInCourse,
   unenrollFromCourse,
   getEnrolledCourses,

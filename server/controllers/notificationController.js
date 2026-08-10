@@ -1,11 +1,17 @@
-const Notification = require('../models/notification');
-const Enrollment = require('../models/enrollment');
-const User = require('../models/user');
-const DegreeProgram = require('../models/degreeProgramme');
-const DegreeUser = require('../models/degreeUser');
+// const Notification = require('../models/notification');
+// const Enrollment = require('../models/enrollment');
+// const User = require('../models/user');
+// const DegreeProgram = require('../models/degreeProgramme');
+// const DegreeUser = require('../models/degreeUser');
+
+import Notification from '../models/notification.js';
+import Enrollment from '../models/enrollment.js';
+import User from '../models/user.js';
+import DegreeProgram from '../models/degreeProgramme.js';
+import DegreeUser from '../models/degreeUser.js';
 
 // Get all notifications for admin (enrollment and teach requests)
-exports.getAdminNotifications = async (req, res) => {
+export const getAdminNotifications = async (req, res) => {
   try {
     console.log('=== getAdminNotifications called ===');
     console.log('User from token:', req.user);
@@ -26,7 +32,7 @@ exports.getAdminNotifications = async (req, res) => {
 };
 
 // Handle enrollment or teach request (accept/reject)
-exports.handleEnrollmentRequest = async (req, res) => {
+export const handleEnrollmentRequest = async (req, res) => {
   try {
     const { notificationId, action } = req.body;
     console.log('=== handleRequest ===');
@@ -180,7 +186,7 @@ exports.handleEnrollmentRequest = async (req, res) => {
 };
 
 // Create enrollment request (student)
-exports.createEnrollmentRequest = async (req, res) => {
+export const createEnrollmentRequest = async (req, res) => {
   try {
     const { degreeProgramId } = req.body;
     const studentId = req.user.id;
@@ -240,7 +246,7 @@ exports.createEnrollmentRequest = async (req, res) => {
 };
 
 // Create teach request (lecturer)
-exports.createTeachRequest = async (req, res) => {
+export const createTeachRequest = async (req, res) => {
   try {
     const { degreeProgramId } = req.body;
     const lecturerId = req.user.id;
@@ -295,7 +301,7 @@ exports.createTeachRequest = async (req, res) => {
 };
 
 // Get student notifications
-exports.getStudentNotifications = async (req, res) => {
+export const getStudentNotifications = async (req, res) => {
   try {
     const studentId = req.user.id;
     console.log('=== getStudentNotifications ===');
@@ -318,7 +324,7 @@ exports.getStudentNotifications = async (req, res) => {
 };
 
 // Get lecturer notifications
-exports.getLecturerNotifications = async (req, res) => {
+export const getLecturerNotifications = async (req, res) => {
   try {
     const lecturerId = req.user.id;
     console.log('=== getLecturerNotifications ===');
@@ -372,7 +378,7 @@ exports.getLecturerNotifications = async (req, res) => {
 };
 
 // Delete notification
-exports.deleteNotification = async (req, res) => {
+export const deleteNotification = async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -387,4 +393,14 @@ exports.deleteNotification = async (req, res) => {
     console.error('Error deleting notification:', error);
     res.status(500).json({ message: 'Failed to delete notification' });
   }
+};
+export default {
+  getAdminNotifications,
+  getLecturerNotifications,
+  handleEnrollmentRequest,
+  createEnrollmentRequest,
+  createTeachRequest,
+  getStudentNotifications,
+  
+  deleteNotification
 };

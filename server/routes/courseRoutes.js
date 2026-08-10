@@ -1,14 +1,20 @@
-const express = require('express');
-const router = express.Router();
-const cors = require('cors');
-const { authenticateToken } = require('../middlewares/auth');
-const {
-    addMaterialLink,
-    updateCourse,
-    getCourse,
-    getAllCourses,
-    deleteCourse
-} = require('../controllers/courseController');
+// const express = require('express');
+// const router = express.Router();
+// const cors = require('cors');
+// const { authenticateToken } = require('../middlewares/auth');
+// const {
+//     addMaterialLink,
+//     updateCourse,
+//     getCourse,
+//     getAllCourses,
+//     deleteCourse
+// } = require('../controllers/courseController');
+import express from 'express';
+import cors from 'cors';
+import { addMaterialLink, updateCourse, getCourse, getAllCourses, deleteCourse } from '../controllers/courseController.js';
+import { authenticateToken } from '../middlewares/auth.js';
+import { Router } from 'express';
+const router = Router();
 
 router.use(cors({
     credentials: true,
@@ -21,4 +27,4 @@ router.put('/:id', authenticateToken, updateCourse);
 router.delete('/:id', authenticateToken, deleteCourse);
 router.post('/add-material-link', authenticateToken, addMaterialLink);
 
-module.exports = router;
+export default router;

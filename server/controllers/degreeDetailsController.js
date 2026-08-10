@@ -1,13 +1,20 @@
-const DegreeDetails = require('../models/degreeDetails');
-const { 
+// const DegreeDetails = require('../models/degreeDetails');
+// const { 
+//     migrateToDegreeDetails, 
+//     syncStudentDegreeDetails,
+//     addCourseToStudentDegree,
+//     removeCourseFromStudentDegree
+// } = require('../utils/degreeDetailsMigration');
+import DegreeDetails from '../models/DegreeDetails.js';
+import { 
     migrateToDegreeDetails, 
     syncStudentDegreeDetails,
     addCourseToStudentDegree,
     removeCourseFromStudentDegree
-} = require('../utils/degreeDetailsMigration');
+} from '../utils/degreeDetailsMigration.js';
 
 // Run migration from DegreeUser and CourseUser to DegreeDetails
-const runMigration = async (req, res) => {
+export const runMigration = async (req, res) => {
     try {
         console.log('Migration endpoint called by:', req.user.email);
         
@@ -28,7 +35,7 @@ const runMigration = async (req, res) => {
 };
 
 // Get degree details for a specific student
-const getStudentDegreeDetails = async (req, res) => {
+export const getStudentDegreeDetails = async (req, res) => {
     try {
         const { registrationNo } = req.params;
         
@@ -48,7 +55,7 @@ const getStudentDegreeDetails = async (req, res) => {
 };
 
 // Get current user's degree details (for students)
-const getMyDegreeDetails = async (req, res) => {
+export const getMyDegreeDetails = async (req, res) => {
     try {
         const userId = req.user.id;
         const User = require('../models/user');
@@ -74,7 +81,7 @@ const getMyDegreeDetails = async (req, res) => {
 };
 
 // Sync a specific student's data
-const syncStudent = async (req, res) => {
+export const syncStudent = async (req, res) => {
     try {
         const { studentId } = req.params;
         
@@ -95,7 +102,7 @@ const syncStudent = async (req, res) => {
 };
 
 // Add course to student's degree
-const addCourse = async (req, res) => {
+export const addCourse = async (req, res) => {
     try {
         const { studentRegistrationNo, degreeName, courseId } = req.body;
         
@@ -121,7 +128,7 @@ const addCourse = async (req, res) => {
 };
 
 // Remove course from student's degree
-const removeCourse = async (req, res) => {
+export const removeCourse = async (req, res) => {
     try {
         const { studentRegistrationNo, degreeName, courseId } = req.body;
         
@@ -146,7 +153,15 @@ const removeCourse = async (req, res) => {
     }
 };
 
-module.exports = {
+// module.exports = {
+//     runMigration,
+//     getStudentDegreeDetails,
+//     getMyDegreeDetails,
+//     syncStudent,
+//     addCourse,
+//     removeCourse
+// };
+export default {
     runMigration,
     getStudentDegreeDetails,
     getMyDegreeDetails,

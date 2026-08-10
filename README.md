@@ -238,6 +238,14 @@ For issues, questions, or suggestions:
 
 See [CHANGELOG.md](docs/CHANGELOG.md) for version history and updates.
 
+## Recent Updates
+
+- Added Google OAuth 2.0 support using Passport.js for social login.
+- Added AWS S3 file upload support for course materials and documents.
+- Added configurable CORS origins via the `CORS_ORIGIN` environment variable.
+- Improved backend startup logging and database connection handling.
+- Updated frontend and backend dependencies for React 19, Express 5, and AWS SDK v3.
+
 ---
 
-Last Updated: June 2026
+Last Updated: August 2026

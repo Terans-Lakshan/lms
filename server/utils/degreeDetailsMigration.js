@@ -1,10 +1,16 @@
-const mongoose = require('mongoose');
-const DegreeUser = require('../models/degreeUser');
-const CourseUser = require('../models/courseUser');
-const DegreeDetails = require('../models/degreeDetails');
-const User = require('../models/user');
+// const mongoose = require('mongoose');
+// const DegreeUser = require('../models/degreeUser');
+// const CourseUser = require('../models/courseUser');
+// const DegreeDetails = require('../models/degreeDetails');
+// const User = require('../models/user');
 
-const migrateToDegreeDetails = async () => {
+import mongoose from 'mongoose';
+import DegreeUser from '../models/degreeUser.js';
+import CourseUser from '../models/courseUser.js';
+import DegreeDetails from '../models/degreeDetails.js';
+import User from '../models/user.js';
+
+export const migrateToDegreeDetails = async () => {
     try {
         console.log('Starting migration to DegreeDetails...');
 
@@ -96,7 +102,7 @@ const migrateToDegreeDetails = async () => {
 };
 
 // Function to sync a specific student's data
-const syncStudentDegreeDetails = async (studentId) => {
+export const syncStudentDegreeDetails = async (studentId) => {
     try {
         const student = await User.findById(studentId);
         if (!student || student.role !== 'student') {
@@ -164,7 +170,7 @@ const syncStudentDegreeDetails = async (studentId) => {
 };
 
 // Function to add course to student's degree in DegreeDetails
-const addCourseToStudentDegree = async (studentRegistrationNo, degreeName, courseId) => {
+export const addCourseToStudentDegree = async (studentRegistrationNo, degreeName, courseId) => {
     try {
         const degreeDetails = await DegreeDetails.findOne({ 
             studentRegistrationNumber: studentRegistrationNo 
@@ -194,7 +200,7 @@ const addCourseToStudentDegree = async (studentRegistrationNo, degreeName, cours
 };
 
 // Function to remove course from student's degree in DegreeDetails
-const removeCourseFromStudentDegree = async (studentRegistrationNo, degreeName, courseId) => {
+export const removeCourseFromStudentDegree = async (studentRegistrationNo, degreeName, courseId) => {
     try {
         const degreeDetails = await DegreeDetails.findOne({ 
             studentRegistrationNumber: studentRegistrationNo 
@@ -220,7 +226,13 @@ const removeCourseFromStudentDegree = async (studentRegistrationNo, degreeName, 
     }
 };
 
-module.exports = {
+// module.exports = {
+//     migrateToDegreeDetails,
+//     syncStudentDegreeDetails,
+//     addCourseToStudentDegree,
+//     removeCourseFromStudentDegree
+// };
+export default {
     migrateToDegreeDetails,
     syncStudentDegreeDetails,
     addCourseToStudentDegree,

@@ -12,7 +12,7 @@ function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(false);
+  // const [remember, setRemember] = useState(false);
 
   // const onChange = (e) => {
   //   setEmail((e) => e.target.value);
@@ -73,7 +73,7 @@ function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 p-2"
-                placeholder="sxxxxx@sci.pdn.ac.lk"
+                placeholder="Enter your email"
               />
             </label>
 
@@ -89,9 +89,11 @@ function Login() {
               />
             </label>
 
-            <div className="flex items-center justify-between">
-              
-              <label className="inline-flex items-center">
+            <div className="flex items-center justify-center"> 
+
+
+ {/* check box remember me  */}
+              {/* <label className="inline-flex items-center">
                 <input
                   type="checkbox"
                   checked={remember}
@@ -99,10 +101,10 @@ function Login() {
                   className="rounded text-emerald-600"
                 />
                 <span className="ml-2 text-sm text-gray-600">Remember me</span>
-              </label>
+              </label> */}
 
               
-              <a href="#" className="text-sm text-emerald-600 hover:underline" onClick={()=> navigate("/forgetpassword")}>Forgot password?</a>
+              <a href="#" className="text-sm text-emerald-600 hover:underline text-align-center" onClick={()=> navigate("/forgetpassword")}>Forgot password?</a>
             </div>
 
             <div className="space-y-3">
@@ -123,7 +125,7 @@ function Login() {
             </div>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-500">or</div>
+          {/* <div className="mt-6 text-center text-sm text-gray-500">or</div>
           
           
           <div className="mt-3">
@@ -134,7 +136,7 @@ function Login() {
               <img src={Googleicon} alt="google icon" className="h-5 w-5" />
               Continue with Google
             </button>
-          </div>
+          </div> */}
           
           
           <div className="mt-6 text-center text-sm text-gray-600">

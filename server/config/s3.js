@@ -2,17 +2,19 @@
 // const { S3Client,PutObjectCommand,DeleteObjectCommand,ListObjectsV2Command,DeleteObjectsCommand
 // } = require('@aws-sdk/client-s3');
 
-const { 
-    S3Client,PutObjectCommand,
-    DeleteObjectCommand,ListObjectsV2Command,DeleteObjectsCommand
-} = require('@aws-sdk/client-s3');
+// const { 
+//     S3Client,PutObjectCommand,
+//     DeleteObjectCommand,ListObjectsV2Command,DeleteObjectsCommand
+// } = require('@aws-sdk/client-s3');
 
-
+import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 
 // const multer = require('multer');
 // const multerS3 = require('multer-s3');
-const multer = require('multer');
-const multerS3 = require('multer-s3');
+// const multer = require('multer');
+// const multerS3 = require('multer-s3');
+import multer from 'multer';
+import multerS3 from 'multer-s3';
 
 // // Configure AWS - trim any spaces from env variables
 // const awsConfig = {
@@ -27,7 +29,7 @@ const multerS3 = require('multer-s3');
 // const s3 = new S3Client(awsConfig);
 
 // Configure AWS
-const awsConfig = {
+export const awsConfig = {
     accessKeyId: (process.env.AWS_ACCESS_KEY_ID || '').trim(),
     secretAccessKey: (process.env.AWS_SECRET_ACCESS_KEY || '').trim(),
     region: (process.env.AWS_REGION || 'us-east-1').trim()
@@ -35,7 +37,7 @@ const awsConfig = {
 
 
 // AWS SDK v3 S3 Client
-const s3 = new S3Client({
+export const s3 = new S3Client({
     region: awsConfig.region,
     credentials: {
         accessKeyId: awsConfig.accessKeyId,
@@ -260,10 +262,8 @@ console.log('Bucket:', (process.env.AWS_BUCKET || process.env.AWS_S3_BUCKET_NAME
 console.log('Access Key ID:',awsConfig.accessKeyId ? `${awsConfig.accessKeyId.substring(0, 10)}...` : 'Missing');
 console.log('Secret Key:',awsConfig.secretAccessKey ? 'Present' : 'Missing');
 
-
-
 // Generate S3 key
-const generateS3Key = (uploadType, identifier, file) => {
+export const generateS3Key = (uploadType, identifier, file) => {
 
     const uniqueSuffix =
         Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -288,13 +288,10 @@ const generateS3Key = (uploadType, identifier, file) => {
 
             return `degree-images/${uniqueSuffix}.${extension}`;
     }
-};
-
-
-
+}
 
 // Multer S3 Upload Middleware
-const createUploadMiddleware = (uploadType) => {
+export const createUploadMiddleware = (uploadType) => {
 
     return multer({
 
@@ -491,20 +488,14 @@ const createUploadMiddleware = (uploadType) => {
 
     });
 
-};
-
-
-
+}
 
 // Default upload
-const upload = createUploadMiddleware('default');
-
-
-
+export const upload = createUploadMiddleware('default');
 
 
 // Create folder in S3
-const createS3Folder = async(folderPath)=>{
+export const createS3Folder = async(folderPath)=>{
 
 
     const bucketName =
@@ -557,14 +548,10 @@ const createS3Folder = async(folderPath)=>{
 
     }
 
-};
-
-
-
-
+}
 
 // Delete S3 Object
-const deleteS3Object = async(key)=>{
+export const deleteS3Object = async(key)=>{
 
 
     const bucketName =
@@ -616,13 +603,8 @@ const deleteS3Object = async(key)=>{
 
 };
 
-
-
-
-
-
 // Delete S3 Folder
-const deleteS3Folder = async(folderPath)=>{
+export const deleteS3Folder = async(folderPath)=>{
 
 
     const bucketName =
@@ -729,28 +711,13 @@ const deleteS3Folder = async(folderPath)=>{
         throw error;
 
     }
-
 };
 
 
+export default {
 
-
-
-
-module.exports = {
-
-    upload,
-
-    s3,
-
-    createUploadMiddleware,
-
-    createS3Folder,
-
-    deleteS3Object,
-
-    deleteS3Folder,
-
-    generateS3Key
+    upload,s3,
+    createUploadMiddleware,createS3Folder,
+    deleteS3Object,deleteS3Folder,generateS3Key
 
 };

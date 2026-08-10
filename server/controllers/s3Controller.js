@@ -1,8 +1,14 @@
-const aws = require('aws-sdk');
-const { v4: uuid } = require('uuid');
-const dotenv = require('dotenv');
-const multer = require('multer');
-const busboy = require('busboy');
+// const aws = require('aws-sdk');
+// const { v4: uuid } = require('uuid');
+// const dotenv = require('dotenv');
+// const multer = require('multer');
+// const busboy = require('busboy');
+
+import aws from 'aws-sdk';
+import { v4 as uuid } from 'uuid';
+import dotenv from 'dotenv';
+import multer from 'multer';
+import busboy from 'busboy';
 
 dotenv.config();
 
@@ -12,7 +18,7 @@ const s3 = new aws.S3({
   region: process.env.AWS_REGION,
 });
 
-const s3Uploadv2 = async (files) => {
+export const s3Uploadv2 = async (files) => {
   const bucketName = (process.env.AWS_S3_BUCKET_NAME || process.env.AWS_BUCKET_NAME || 'geo-lms').trim();
   const params = files.map((file) => ({
     Bucket: bucketName,
@@ -34,9 +40,9 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({ storage, fileFilter, limits: { fileSize: 1024 * 1024 * 5, files: 2 } });
+export const upload = multer({ storage, fileFilter, limits: { fileSize: 1024 * 1024 * 5, files: 2 } });
 
-const uploadFiles = async (req, res) => {
+export const uploadFiles = async (req, res) => {
   try {
     const results = await s3Uploadv2(req.files);
     return res.json({ status: 'success', results });
@@ -46,7 +52,7 @@ const uploadFiles = async (req, res) => {
   }
 };
 
-const getImage = (req, res) => {
+export const getImage = (req, res) => {
   const key = req.params.key;
   const Bucket = (process.env.AWS_S3_BUCKET_NAME || process.env.AWS_BUCKET_NAME || 'geo-lms').trim();
   const region = (process.env.AWS_REGION || 'us-east-1').trim();
@@ -67,7 +73,7 @@ const getImage = (req, res) => {
   });
 };
 
-const uploadLargeFile = (req, res) => {
+export const uploadLargeFile = (req, res) => {
   try {
     const bb = busboy({ headers: req.headers });
     const bucketName = (process.env.AWS_S3_BUCKET_NAME || process.env.AWS_BUCKET_NAME || 'geo-lms').trim();
@@ -135,7 +141,7 @@ const uploadLargeFile = (req, res) => {
   }
 };
 
-const getAllProjects = async (req, res) => {
+export const getAllProjects = async (req, res) => {
   try {
     const bucketName = (process.env.AWS_S3_BUCKET_NAME || process.env.AWS_BUCKET_NAME || 'geo-lms').trim();
     const params = { Bucket: bucketName, Prefix: 'uploads/projects/', Delimiter: '/' };
@@ -148,7 +154,7 @@ const getAllProjects = async (req, res) => {
   }
 };
 
-const getProjectFiles = async (req, res) => {
+export const getProjectFiles = async (req, res) => {
   try {
     const { projectName } = req.params;
     if (!projectName) {
@@ -172,4 +178,5 @@ const getProjectFiles = async (req, res) => {
   }
 };
 
-module.exports = { upload, uploadFiles, getImage, uploadLargeFile, getAllProjects, getProjectFiles };
+// module.exports = { upload, uploadFiles, getImage, uploadLargeFile, getAllProjects, getProjectFiles };
+export default { upload, uploadFiles, getImage, uploadLargeFile, getAllProjects, getProjectFiles };

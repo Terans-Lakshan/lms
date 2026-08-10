@@ -1,7 +1,9 @@
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+// const bcrypt = require('bcrypt');
+// const jwt = require('jsonwebtoken');
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
-const hashPassword = async (password) => {
+export const hashPassword = async (password) => {
     return new Promise((resolve, reject) => {
         bcrypt.hash(password, 12, (err, hash) => {
             if (err) return reject(err);
@@ -10,12 +12,12 @@ const hashPassword = async (password) => {
     });
 }
 
-const comparePassword = async (password, hashedPassword) => {
+export const comparePassword = async (password, hashedPassword) => {
     return  bcrypt.compare(password, hashedPassword);
 }
 
 // Middleware to verify JWT token from Authorization header
-const authenticateToken = (req, res, next) => {
+export const authenticateToken = (req, res, next) => {
     try {
         const authHeader = req.headers['authorization'];
         const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
@@ -44,7 +46,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 // Middleware to check if user is admin
-const isAdmin = (req, res, next) => {
+export const isAdmin = (req, res, next) => {
     console.log('=== isAdmin Middleware ===');
     console.log('req.user:', req.user);
     console.log('req.user.role:', req.user?.role);
@@ -58,4 +60,4 @@ const isAdmin = (req, res, next) => {
     }
 };
 
-module.exports = { hashPassword, comparePassword, authenticateToken, isAdmin };
+export default { hashPassword, comparePassword, authenticateToken, isAdmin };

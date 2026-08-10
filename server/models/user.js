@@ -1,4 +1,5 @@
-const mongoose = require('mongoose');
+// const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const userSchema = new Schema({
@@ -16,5 +17,6 @@ const userSchema = new Schema({
     otpExpires: { type: Date }
 }, { timestamps: true });
 
-const User = mongoose.model('User', userSchema);
-module.exports = User;
+//const User = mongoose.model('User', userSchema);
+const User = mongoose.models.User || mongoose.model("User", userSchema);
+export default User;

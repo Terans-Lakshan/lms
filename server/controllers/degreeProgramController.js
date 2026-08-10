@@ -1,10 +1,16 @@
-const DegreeProgram = require('../models/degreeProgramme.js');
-const Enrollment = require('../models/enrollment.js');
-const Course = require('../models/course.js');
-const User = require('../models/user.js');
-const DegreeUser = require('../models/degreeUser.js');
+// const DegreeProgram = require('../models/degreeProgramme.js');
+// const Enrollment = require('../models/enrollment.js');
+// const Course = require('../models/course.js');
+// const User = require('../models/user.js');
+// const DegreeUser = require('../models/degreeUser.js');
 
-const createDegreeProgram = async (req, res) => {
+import DegreeProgram from '../models/degreeProgramme.js';
+import Enrollment from '../models/enrollment.js';
+import Course from '../models/course.js';
+import User from '../models/user.js';
+import DegreeUser from '../models/degreeUser.js';
+
+export const createDegreeProgram = async (req, res) => {
     try {
         const { title, code, description, previewImage, adminNotes } = req.body;
 
@@ -33,7 +39,7 @@ const createDegreeProgram = async (req, res) => {
     }
 }
 
-const updateDegreeProgram = async (req, res) => {
+export const updateDegreeProgram = async (req, res) => {
     try {
         const { id } = req.params;
         const { title, code, description, previewImage, adminNotes } = req.body;
@@ -71,7 +77,7 @@ const updateDegreeProgram = async (req, res) => {
     }
 }
 
-const getAllDegreePrograms = async (req, res) => {
+export const getAllDegreePrograms = async (req, res) => {
     try {
         const programs = await DegreeProgram.find()
             .populate('lecturers', 'name email')
@@ -83,7 +89,7 @@ const getAllDegreePrograms = async (req, res) => {
     }
 }
 
-const enrollInProgram = async (req, res) => {
+export const enrollInProgram = async (req, res) => {
     try {
         const { studentId, degreeProgramId } = req.body;
 
@@ -122,7 +128,7 @@ const enrollInProgram = async (req, res) => {
     }
 }
 
-const getPendingEnrollments = async (req, res) => {
+export const getPendingEnrollments = async (req, res) => {
     try {
         const pendingEnrollments = await Enrollment.find({ status: 'pending' })
             .populate('student', 'name email registrationNo')
@@ -136,7 +142,7 @@ const getPendingEnrollments = async (req, res) => {
     }
 }
 
-const updateEnrollmentStatus = async (req, res) => {
+export const updateEnrollmentStatus = async (req, res) => {
     try {
         const { enrollmentId, status, adminId } = req.body;
 
@@ -169,7 +175,7 @@ const updateEnrollmentStatus = async (req, res) => {
     }
 }
 
-const getMyEnrolledPrograms = async (req, res) => {
+export const getMyEnrolledPrograms = async (req, res) => {
     try {
         const userId = req.user.id;
         console.log('\n=== getMyEnrolledPrograms ===');
@@ -244,7 +250,7 @@ const getMyEnrolledPrograms = async (req, res) => {
     }
 }
 
-const assignLecturerToProgram = async (req, res) => {
+export const assignLecturerToProgram = async (req, res) => {
     try {
         const { degreeProgramId, lecturerId } = req.body;
         
@@ -321,7 +327,7 @@ const assignLecturerToProgram = async (req, res) => {
     }
 }
 
-const deleteDegreeProgram = async (req, res) => {
+export const deleteDegreeProgram = async (req, res) => {
     try {
         const { id } = req.params;
         
@@ -352,7 +358,7 @@ const deleteDegreeProgram = async (req, res) => {
     }
 }
 
-const addCourseToDegree = async (req, res) => {
+export const addCourseToDegree = async (req, res) => {
     try {
         const { title, code, credit, description, degreeProgramId } = req.body;
         const userId = req.user.id;
@@ -407,7 +413,19 @@ const addCourseToDegree = async (req, res) => {
     }
 };
 
-module.exports = {
+// module.exports = {
+//     createDegreeProgram,
+//     updateDegreeProgram,
+//     getAllDegreePrograms,
+//     enrollInProgram,
+//     getPendingEnrollments,
+//     updateEnrollmentStatus,
+//     getMyEnrolledPrograms,
+//     assignLecturerToProgram,
+//     deleteDegreeProgram,
+//     addCourseToDegree
+// };
+export default {
     createDegreeProgram,
     updateDegreeProgram,
     getAllDegreePrograms,

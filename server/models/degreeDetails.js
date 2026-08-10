@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
-
-const degreeDetailsSchema = new mongoose.Schema({
+//const mongoose = require('mongoose');
+import mongoose from 'mongoose';
+export const degreeDetailsSchema = new mongoose.Schema({
     studentRegistrationNumber: {
         type: String,
         required: true,
@@ -31,4 +31,5 @@ degreeDetailsSchema.pre('save', function(next) {
     next();
 });
 
-module.exports = mongoose.model('DegreeDetails', degreeDetailsSchema);
+// export default mongoose.model('DegreeDetails', degreeDetailsSchema);
+export default degreeDetailsSchema;
