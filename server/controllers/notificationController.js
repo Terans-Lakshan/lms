@@ -307,9 +307,12 @@ export const getStudentNotifications = async (req, res) => {
     console.log('=== getStudentNotifications ===');
     console.log('Student ID:', studentId);
 
+    // Only fetch enrollment_request (degree) and course_enrollment_response (status updates)
+    // Exclude course_enrollment_request because those are for lecturers, not students
     const notifications = await Notification.find({
       requester: studentId,
-      requesterRole: 'student'
+      requesterRole: 'student',
+      type: { $ne: 'course_enrollment_request' } // Exclude lecturer course requests
     })
       .populate('degreeProgram', 'title code')
       .populate('course', 'title code')
@@ -335,32 +338,29 @@ export const getLecturerNotifications = async (req, res) => {
       requester: lecturerId,
       requesterRole: 'lecturer'
     })
+      .populate('requester', 'name email registrationNo')
       .populate('degreeProgram', 'title code')
       .populate('course', 'title code')
       .sort({ createdAt: -1 });
 
-    // Get course enrollment requests for courses in degree programs the lecturer teaches
-    const DegreeUser = require('../models/degreeUser');
-    const degreeUser = await DegreeUser.findOne({ userId: lecturerId });
-    
-    console.log('Lecturer degreeUser:', degreeUser);
-    
+    // Get course enrollment requests only for degree programs where this lecturer is assigned
+    const lecturerDegreePrograms = await DegreeProgram.find({ lecturers: lecturerId }).select('_id');
+    const lecturerDegreeProgramIds = lecturerDegreePrograms.map(program => program._id);
+
     let courseEnrollmentRequests = [];
-    if (degreeUser && degreeUser.degrees.length > 0) {
-      const degreeProgramIds = degreeUser.degrees.map(d => d.degreeId);
-      console.log('Lecturer degree program IDs:', degreeProgramIds);
-      
+    if (lecturerDegreeProgramIds.length > 0) {
+      // Fetch ONLY pending requests where this lecturer is the direct recipient
       courseEnrollmentRequests = await Notification.find({
         type: 'course_enrollment_request',
-        degreeProgram: { $in: degreeProgramIds },
+        recipient: lecturerId,
         status: 'pending'
       })
         .populate('requester', 'name email registrationNo')
         .populate('course', 'title code')
         .populate('degreeProgram', 'title code')
         .sort({ createdAt: -1 });
-      
-      console.log('Course enrollment requests found:', courseEnrollmentRequests.length);
+
+      console.log('Course enrollment requests found for lecturer:', courseEnrollmentRequests.length);
     }
 
     // Combine both notification types

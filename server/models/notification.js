@@ -12,10 +12,19 @@ const notificationSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  recipient: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   requesterRole: {
     type: String,
     enum: ['student', 'lecturer', 'admin'],
     required: true
+  },
+  recipientRole: {
+    type: String,
+    enum: ['lecturer', 'admin'],
+    default: null
   },
   degreeProgram: {
     type: mongoose.Schema.Types.ObjectId,

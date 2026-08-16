@@ -94,6 +94,34 @@ const isLecturerAssigned = (lecturerId) => {
     }
   };
 
+  const handleUnassignLecturer = async (lecturerId) => {
+    setAssigningLecturer(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        'http://localhost:3000/api/degree-programs/unassign-lecturer',
+        {
+          degreeProgramId: degree._id,
+          lecturerId: lecturerId
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success('Lecturer unassigned successfully!');
+      
+      // Trigger refresh if callback provided
+      if (onEnrollmentSuccess) {
+        onEnrollmentSuccess();
+      }
+    } catch (error) {
+      console.error('Error unassigning lecturer:', error);
+      const message = error.response?.data?.message || 'Failed to unassign lecturer';
+      toast.error(message);
+    } finally {
+      setAssigningLecturer(false);
+    }
+  };
+
   const getButtonText = () => {
     switch (userRole) {
       case 'student':
@@ -285,30 +313,33 @@ const isLecturerAssigned = (lecturerId) => {
                         <p className="text-sm text-gray-600">{lecturer.email}</p>
                         <p className="text-xs text-gray-500 mt-1">Reg No: {lecturer.registrationNo}</p>
                       </div>
-                      {/* <button
-                        onClick={() => handleAssignLecturer(lecturer._id)}
-                        disabled={assigningLecturer}
-                        className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {assigningLecturer ? 'Assigning...' : 'Assign'}
-                      </button> */}
-                      <button
-                        onClick={() => handleAssignLecturer(lecturer._id)}
-                        disabled={assigningLecturer || isLecturerAssigned(lecturer._id)}
-                        className={`px-4 py-2 rounded-lg transition ${
-                        isLecturerAssigned(lecturer._id)
-                          ? 'bg-gray-400 text-white cursor-not-allowed'
-                          : 'bg-teal-600 text-white hover:bg-teal-700'
-                        }`}
-                        >
-                        {
-                        assigningLecturer
-                          ? 'Assigning...'
-                          : isLecturerAssigned(lecturer._id)
-                            ? 'Assigned'
-                            : 'Assign'
-                        }
-                      </button>
+                      <div className="flex gap-2">
+                        {isLecturerAssigned(lecturer._id) ? (
+                          <>
+                            <button
+                              disabled={true}
+                              className="px-4 py-2 rounded-lg transition font-medium bg-gray-400 text-white cursor-not-allowed opacity-50"
+                            >
+                              Assigned
+                            </button>
+                            <button
+                              onClick={() => handleUnassignLecturer(lecturer._id)}
+                              disabled={assigningLecturer}
+                              className="px-4 py-2 rounded-lg transition font-medium bg-orange-500 text-white hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {assigningLecturer ? 'Processing...' : 'Unassign'}
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => handleAssignLecturer(lecturer._id)}
+                            disabled={assigningLecturer}
+                            className="px-4 py-2 rounded-lg transition font-medium bg-teal-600 text-white hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {assigningLecturer ? 'Processing...' : 'Assign'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

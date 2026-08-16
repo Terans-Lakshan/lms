@@ -18,7 +18,7 @@
 import express from 'express';
 import cors from 'cors';
 import { authenticateToken, isAdmin } from '../middlewares/auth.js';
-import { createDegreeProgram, updateDegreeProgram, getAllDegreePrograms, enrollInProgram, getPendingEnrollments, updateEnrollmentStatus, getMyEnrolledPrograms, assignLecturerToProgram, deleteDegreeProgram, addCourseToDegree } from '../controllers/degreeProgramController.js'; 
+import { createDegreeProgram, updateDegreeProgram, getAllDegreePrograms, enrollInProgram, getPendingEnrollments, updateEnrollmentStatus, getMyEnrolledPrograms, assignLecturerToProgram, unassignLecturerFromProgram, deleteDegreeProgram, addCourseToDegree } from '../controllers/degreeProgramController.js'; 
 import { Router } from 'express';
 
 const router = Router();
@@ -51,6 +51,7 @@ router.get('/debug-degree-user', authenticateToken, async (req, res) => {
     }
 });
 router.post('/assign-lecturer', authenticateToken, assignLecturerToProgram);
+router.post('/unassign-lecturer', authenticateToken, unassignLecturerFromProgram);
 router.post('/add-course', authenticateToken, addCourseToDegree);
 router.delete('/:id', authenticateToken, deleteDegreeProgram);
 

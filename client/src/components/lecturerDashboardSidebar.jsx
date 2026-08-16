@@ -191,7 +191,8 @@ const LecturerDashboardSidebar = ({ isOpen, onClose, enrolledPrograms = [] }) =>
                     </>
                   )}
                   
-                  {isCourseEnrollment && notification.status === 'pending' && (
+                  {/* Show buttons for course enrollment requests or if notification has a course field and is pending */}
+                  {(isCourseEnrollment || (notification.course && !isCourseEnrollment)) && notification.status === 'pending' && (
                     <div className="flex gap-2 mt-3">
                       <button
                         onClick={() => handleCourseEnrollmentRequest(notification._id, 'accept')}

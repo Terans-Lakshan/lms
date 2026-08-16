@@ -66,11 +66,14 @@
 //   });
 // }
 
+import dotenv from "dotenv";
+// Load environment variables
+dotenv.config();
 
-
+import fileRoutes from "./routes/fileRoutes.js";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
 //import passport from "./config/passport.js";
@@ -90,10 +93,11 @@ import uploadRoutes from "./routes/uploadRoutes.js";
 import degreeDetailsRoutes from "./routes/degreeDetailsRoutes.js";
 import enrollmentRoutes from "./routes/enrollmentRoutes.js";
 
-// Load environment variables
-dotenv.config();
+
 
 const app = express();
+
+app.use("/api/files", fileRoutes);
 
 // ================================
 // Middleware

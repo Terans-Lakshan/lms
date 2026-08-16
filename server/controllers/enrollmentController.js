@@ -59,23 +59,42 @@ export const enrollInCourse = async (req, res) => {
       return res.status(400).json({ message: 'You already have a pending enrollment request for this course' });
     }
 
-    // Create notification for lecturers teaching this degree program
-    const notification = new Notification({
-      type: 'course_enrollment_request',
-      requester: userId,
-      requesterRole: user.role,
-      course: courseId,
-      degreeProgram: degreeProgram._id,
-      status: 'pending',
-      message: `${user.name.first} ${user.name.last} (${user.registrationNo}) has requested to enroll in ${course.title} (${course.code})`
-    });
+    const assignedLecturers = Array.isArray(degreeProgram.lecturers) ? degreeProgram.lecturers : [];
+    const lecturerIds = [...new Set(
+      assignedLecturers.map(lecturer => (lecturer && lecturer._id ? lecturer._id.toString() : lecturer.toString()))
+    )];
 
-    await notification.save();
-    console.log('Course enrollment notification created:', {
-      type: notification.type,
+    if (!lecturerIds.length) {
+      return res.status(400).json({
+        message: 'No lecturers are assigned to this degree program yet. Please contact the admin.'
+      });
+    }
+
+    const notifications = await Promise.all(
+      lecturerIds.map(async (lecturerId) => {
+        const notification = new Notification({
+          type: 'course_enrollment_request',
+          requester: userId,
+          recipient: lecturerId,
+          requesterRole: user.role,
+          recipientRole: 'lecturer',
+          course: courseId,
+          degreeProgram: degreeProgram._id,
+          status: 'pending',
+          message: `${user.name.first} ${user.name.last} (${user.registrationNo}) has requested to enroll in ${course.title} (${course.code})`
+        });
+
+        await notification.save();
+        return notification;
+      })
+    );
+
+    console.log('Course enrollment notifications created:', {
       degreeProgram: degreeProgram._id,
       course: courseId,
-      student: userId
+      student: userId,
+      recipients: lecturerIds,
+      count: notifications.length
     });
 
     // Create a response notification for the student
@@ -93,7 +112,8 @@ export const enrollInCourse = async (req, res) => {
 
     res.status(200).json({ 
       message: 'Enrollment request sent successfully. Waiting for lecturer approval.',
-      notification
+      notifications,
+      notification: notifications[0]
     });
   } catch (error) {
     console.error('Enrollment request error:', error);

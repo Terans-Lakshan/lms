@@ -293,10 +293,14 @@ const AdminDashboard = () => {
     }
 
     setLoading(true);
+    const token = localStorage.getItem("token");
     try {
       await axios.post(
         "http://localhost:3000/api/degree-programs",
-        formData
+        formData,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
       );
 
       toast.success("Degree program created successfully!");

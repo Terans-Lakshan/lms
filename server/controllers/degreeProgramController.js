@@ -413,6 +413,56 @@ export const addCourseToDegree = async (req, res) => {
     }
 };
 
+export const unassignLecturerFromProgram = async (req, res) => {
+    try {
+        const { degreeProgramId, lecturerId } = req.body;
+        
+        if (!degreeProgramId || !lecturerId) {
+            return res.status(400).json({ message: "Degree program ID and lecturer ID are required" });
+        }
+
+        // Find the degree program
+        const degreeProgram = await DegreeProgram.findById(degreeProgramId);
+        if (!degreeProgram) {
+            return res.status(404).json({ message: "Degree program not found" });
+        }
+
+        // Check if lecturer exists
+        const lecturer = await User.findById(lecturerId);
+        if (!lecturer || lecturer.role !== 'lecturer') {
+            return res.status(404).json({ message: "Lecturer not found" });
+        }
+
+        // Check if lecturer is assigned
+        if (!degreeProgram.lecturers.includes(lecturerId)) {
+            return res.status(400).json({ message: "Lecturer is not assigned to this program" });
+        }
+
+        // Remove lecturer from degree program
+        degreeProgram.lecturers = degreeProgram.lecturers.filter(
+            id => id.toString() !== lecturerId.toString()
+        );
+        await degreeProgram.save();
+
+        // Also update DegreeUser collection
+        await DegreeUser.updateOne(
+            { userId: lecturerId },
+            { $pull: { degrees: { degreeId: degreeProgramId } } }
+        );
+
+        const populatedProgram = await DegreeProgram.findById(degreeProgramId)
+            .populate('lecturers', 'name email');
+
+        res.status(200).json({ 
+            message: "Lecturer unassigned successfully", 
+            degreeProgram: populatedProgram 
+        });
+    } catch (error) {
+        console.error('Error unassigning lecturer:', error);
+        res.status(500).json({ error: "Server error unassigning lecturer" });
+    }
+};
+
 // module.exports = {
 //     createDegreeProgram,
 //     updateDegreeProgram,
@@ -423,7 +473,8 @@ export const addCourseToDegree = async (req, res) => {
 //     getMyEnrolledPrograms,
 //     assignLecturerToProgram,
 //     deleteDegreeProgram,
-//     addCourseToDegree
+//     addCourseToDegree,
+//     unassignLecturerFromProgram
 // };
 export default {
     createDegreeProgram,
@@ -434,6 +485,7 @@ export default {
     updateEnrollmentStatus,
     getMyEnrolledPrograms,
     assignLecturerToProgram,
+    unassignLecturerFromProgram,
     deleteDegreeProgram,
     addCourseToDegree
 };
