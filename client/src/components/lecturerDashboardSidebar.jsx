@@ -47,6 +47,8 @@ const LecturerDashboardSidebar = ({ isOpen, onClose, enrolledPrograms = [] }) =>
     } catch (error) {
       console.error('Error handling enrollment request:', error);
       toast.error(error.response?.data?.message || `Failed to ${action} request`);
+      // Another assigned lecturer may have answered first - refresh to show that
+      fetchNotifications();
     } finally {
       setProcessing(prev => ({ ...prev, [notificationId]: false }));
     }
@@ -177,6 +179,19 @@ const LecturerDashboardSidebar = ({ isOpen, onClose, enrolledPrograms = [] }) =>
                       <p className="text-xs text-gray-500">
                         Reg No: {notification.requester?.registrationNo}
                       </p>
+                      {notification.status !== 'pending' && (
+                        <p className={`text-xs font-medium mt-1 ${
+                          notification.status === 'accepted' ? 'text-green-700' : 'text-red-700'
+                        }`}>
+                          {notification.status === 'accepted' ? 'Accepted' : 'Rejected'} by{' '}
+                          {notification.respondedBy?.name
+                            ? `${notification.respondedBy.name.first} ${notification.respondedBy.name.last}`
+                            : 'another lecturer'}
+                          {notification.respondedAt
+                            ? ` on ${new Date(notification.respondedAt).toLocaleDateString()}`
+                            : ''}
+                        </p>
+                      )}
                     </div>
                   )}
                   

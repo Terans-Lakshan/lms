@@ -56,11 +56,11 @@ export const handleEnrollmentRequest = async (req, res) => {
       return res.status(400).json({ message: 'Request already processed' });
     }
 
-    // Update the original notification
+    // Update the original notification (saved once the request has been processed,
+    // so the status and the message the requester sees are persisted together)
     notification.status = action === 'accept' ? 'accepted' : 'rejected';
     notification.respondedBy = req.user.id;
     notification.respondedAt = new Date();
-    await notification.save();
 
     // Handle based on request type
     if (notification.type === 'enrollment_request') {
@@ -175,6 +175,8 @@ export const handleEnrollmentRequest = async (req, res) => {
       }
     }
 
+    await notification.save();
+
     res.json({ 
       message: `Request ${action}ed successfully`,
       notification 
@@ -227,6 +229,7 @@ export const createEnrollmentRequest = async (req, res) => {
       type: 'enrollment_request',
       requester: studentId,
       requesterRole: 'student',
+      recipientRole: 'admin',
       degreeProgram: degreeProgramId,
       status: 'pending',
       message: 'Your enrollment request is pending admin approval.'
@@ -282,6 +285,7 @@ export const createTeachRequest = async (req, res) => {
       type: 'teach_request',
       requester: lecturerId,
       requesterRole: 'lecturer',
+      recipientRole: 'admin',
       degreeProgram: degreeProgramId,
       status: 'pending',
       message: 'Your teach request is pending admin approval.'
@@ -341,6 +345,7 @@ export const getLecturerNotifications = async (req, res) => {
       .populate('requester', 'name email registrationNo')
       .populate('degreeProgram', 'title code')
       .populate('course', 'title code')
+      .populate('respondedBy', 'name email')
       .sort({ createdAt: -1 });
 
     // Get course enrollment requests only for degree programs where this lecturer is assigned
@@ -349,15 +354,16 @@ export const getLecturerNotifications = async (req, res) => {
 
     let courseEnrollmentRequests = [];
     if (lecturerDegreeProgramIds.length > 0) {
-      // Fetch ONLY pending requests where this lecturer is the direct recipient
+      // Fetch every request addressed to this lecturer, including the ones already
+      // handled by another lecturer assigned to the same degree program
       courseEnrollmentRequests = await Notification.find({
         type: 'course_enrollment_request',
-        recipient: lecturerId,
-        status: 'pending'
+        recipient: lecturerId
       })
         .populate('requester', 'name email registrationNo')
         .populate('course', 'title code')
         .populate('degreeProgram', 'title code')
+        .populate('respondedBy', 'name email')
         .sort({ createdAt: -1 });
 
       console.log('Course enrollment requests found for lecturer:', courseEnrollmentRequests.length);

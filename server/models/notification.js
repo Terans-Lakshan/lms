@@ -34,6 +34,12 @@ const notificationSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course'
   },
+  // Shared id for one request that was fanned out to several recipients, so the
+  // copies of the same request can be kept in sync with each other
+  requestGroup: {
+    type: mongoose.Schema.Types.ObjectId,
+    index: true
+  },
   status: {
     type: String,
     enum: ['pending', 'accepted', 'rejected'],

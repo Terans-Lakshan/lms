@@ -18,6 +18,7 @@ const LecturerDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [notifications, setNotifications] = useState([]);
+  const [processingRequest, setProcessingRequest] = useState({});
   const [enrolledPrograms, setEnrolledPrograms] = useState([]);
   const [selectedDegree, setSelectedDegree] = useState(null);
 
@@ -46,6 +47,28 @@ const LecturerDashboard = () => {
       fetchNotifications(); // Refresh to show updated list
     } catch (error) {
       console.error('Error deleting notification:', error);
+    }
+  };
+
+  // Accept or reject a student's course enrollment request. The same request is sent to
+  // every lecturer assigned to the degree program, so refresh afterwards either way -
+  // another lecturer may have answered it first.
+  const handleCourseEnrollmentRequest = async (notificationId, action) => {
+    setProcessingRequest(prev => ({ ...prev, [notificationId]: true }));
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        'http://localhost:3000/api/enrollments/handle-course-request',
+        { notificationId, action },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(`Enrollment request ${action}ed successfully`);
+    } catch (error) {
+      console.error('Error handling enrollment request:', error);
+      toast.error(error.response?.data?.message || `Failed to ${action} request`);
+    } finally {
+      setProcessingRequest(prev => ({ ...prev, [notificationId]: false }));
+      fetchNotifications();
     }
   };
 
@@ -356,7 +379,13 @@ const LecturerDashboard = () => {
                     <p className="text-sm">No notifications</p>
                   </div>
                 ) : (
-                  notifications.map((notification) => (
+                  notifications.map((notification) => {
+                    const isCourseEnrollment = notification.type === 'course_enrollment_request';
+                    const responderName = notification.respondedBy?.name
+                      ? `${notification.respondedBy.name.first} ${notification.respondedBy.name.last}`
+                      : 'another lecturer';
+
+                    return (
                     <div 
                       key={notification._id} 
                       className={`p-4 rounded-lg border ${
@@ -387,17 +416,62 @@ const LecturerDashboard = () => {
                           </svg>
                         </button>
                       </div>
-                      <p className="text-sm text-gray-800 font-medium mb-1">
-                        {notification.degreeProgram?.title}
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {notification.message}
-                      </p>
+                      {isCourseEnrollment ? (
+                        <>
+                          <p className="text-xs text-gray-500 font-medium">Course Enrollment Request</p>
+                          <p className="text-sm text-gray-800 font-semibold">
+                            {notification.course?.title} ({notification.course?.code})
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            Student: {notification.requester?.name?.first} {notification.requester?.name?.last}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Reg No: {notification.requester?.registrationNo}
+                          </p>
+                          {notification.status !== 'pending' && (
+                            <p className={`text-xs font-medium mt-1 ${
+                              notification.status === 'accepted' ? 'text-green-700' : 'text-red-700'
+                            }`}>
+                              {notification.status === 'accepted' ? 'Accepted' : 'Rejected'} by {responderName}
+                              {notification.respondedAt
+                                ? ` on ${new Date(notification.respondedAt).toLocaleDateString()}`
+                                : ''}
+                            </p>
+                          )}
+                          {notification.status === 'pending' && (
+                            <div className="flex gap-2 mt-3">
+                              <button
+                                onClick={() => handleCourseEnrollmentRequest(notification._id, 'accept')}
+                                disabled={processingRequest[notification._id]}
+                                className="flex-1 bg-green-500 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-green-600 transition disabled:opacity-50"
+                              >
+                                {processingRequest[notification._id] ? 'Processing...' : 'Accept'}
+                              </button>
+                              <button
+                                onClick={() => handleCourseEnrollmentRequest(notification._id, 'reject')}
+                                disabled={processingRequest[notification._id]}
+                                className="flex-1 bg-red-500 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-red-600 transition disabled:opacity-50"
+                              >
+                                {processingRequest[notification._id] ? 'Processing...' : 'Reject'}
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-gray-800 font-medium mb-1">
+                            {notification.degreeProgram?.title}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {notification.message}
+                          </p>
+                        </>
+                      )}
                       <p className="text-xs text-gray-400 mt-2">
                         {new Date(notification.createdAt).toLocaleDateString()}
                       </p>
                     </div>
-                  ))
+                  )})
                 )}
               </div>
             </>
