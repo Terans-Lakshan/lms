@@ -5,7 +5,7 @@
 // const Course = require('../models/course');
 
 import express from 'express';
-import { upload, s3, createUploadMiddleware, createS3Folder, deleteS3Object, deleteS3Folder } from '../config/s3.js';
+import { upload, s3, createUploadMiddleware, createS3Folder, deleteS3Object, deleteS3Folder, getMaxUploadSize, formatFileSize } from '../config/s3.js';
 import { authenticateToken } from '../middlewares/auth.js';
 import Course from '../models/course.js';
 import { Router } from 'express';
@@ -13,6 +13,31 @@ import { Router } from 'express';
 const router = Router();
 
 console.log('Upload routes module loaded');
+
+// Turn a multer/S3 upload error into a response the user can act on.
+// A file over the limit is the caller's problem, not a server fault, so it must not
+// come back as a 500.
+export const sendUploadError = (res, err, uploadType) => {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+            message: `File is too large. Maximum allowed size is ${formatFileSize(getMaxUploadSize(uploadType))}.`,
+            error: err.message,
+            code: err.code,
+            maxFileSize: getMaxUploadSize(uploadType)
+        });
+    }
+
+    // A file rejected by the type filter arrives without a multer error code
+    if (!err.code) {
+        return res.status(400).json({ message: err.message, error: err.message });
+    }
+
+    return res.status(500).json({
+        message: 'Failed to upload file',
+        error: err.message,
+        code: err.code
+    });
+};
 
 // Test S3 connection
 router.get('/test-s3', authenticateToken, async (req, res) => {
@@ -59,11 +84,8 @@ router.post('/upload-degree-preview', (req, res, next) => {
         if (err) {
             console.error('=== Multer/S3 upload error ===');
             console.error('Error:', err);
-            
-            return res.status(500).json({ 
-                message: 'Failed to upload file', 
-                error: err.message
-            });
+
+            return sendUploadError(res, err, 'degree-preview');
         }
 
         if (!req.file) {
@@ -117,10 +139,7 @@ router.post('/upload-course-material', (req, res, next) => {
     courseUpload.single('file')(req, res, async function (err) {
         if (err) {
             console.error('Course material upload error:', err);
-            return res.status(500).json({ 
-                message: 'Failed to upload file', 
-                error: err.message
-            });
+            return sendUploadError(res, err, 'course-material');
         }
 
         if (!req.file) {
@@ -203,13 +222,8 @@ router.post('/upload', (req, res, next) => {
             console.error('Error code:', err.code);
             console.error('Error message:', err.message);
             console.error('Error stack:', err.stack);
-            
-            return res.status(500).json({ 
-                message: 'Failed to upload file', 
-                error: err.message,
-                code: err.code,
-                details: err.toString()
-            });
+
+            return sendUploadError(res, err, 'default');
         }
 
         if (!req.file) {

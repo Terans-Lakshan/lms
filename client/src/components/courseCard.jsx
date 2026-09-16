@@ -1,13 +1,25 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import CourseDetailsModal from './courseDetailsModal';
+
+// Must stay in step with the course-material limit enforced in server/config/s3.js
+const MAX_MATERIAL_SIZE = 10 * 1024 * 1024; // 10MB
+
+const formatFileSize = (bytes) => {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${bytes} B`;
+};
 
 const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = false, enrollmentStatus = 'not_enrolled', degreeCode = '' }) => {
   const [loading, setLoading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [materialLink, setMaterialLink] = useState('');
-  const [uploadType, setUploadType] = useState('file'); // 'file' or 'link'
+  const [messageTitle, setMessageTitle] = useState('');
+  const [messageBody, setMessageBody] = useState('');
+  const [uploadType, setUploadType] = useState('file'); // 'file', 'link' or 'message'
   const [enrolling, setEnrolling] = useState(false);
   const [unenrolling, setUnenrolling] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -53,7 +65,23 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
   };
 
   const handleFileSelect = (e) => {
-    setSelectedFile(e.target.files[0]);
+    const file = e.target.files[0];
+
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
+
+    // Catch an oversized file here, so the lecturer is not left waiting for a whole
+    // upload that the server is going to reject anyway
+    if (file.size > MAX_MATERIAL_SIZE) {
+      toast.error(`"${file.name}" is ${formatFileSize(file.size)}. Maximum allowed size is 10 MB.`);
+      e.target.value = '';
+      setSelectedFile(null);
+      return;
+    }
+
+    setSelectedFile(file);
   };
 
   const handleUploadMaterial = async () => {
@@ -62,8 +90,18 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
       return;
     }
 
+    if (uploadType === 'file' && selectedFile.size > MAX_MATERIAL_SIZE) {
+      toast.error(`File is too large (${formatFileSize(selectedFile.size)}). Maximum allowed size is 10 MB.`);
+      return;
+    }
+
     if (uploadType === 'link' && !materialLink) {
       toast.error('Please enter a link');
+      return;
+    }
+
+    if (uploadType === 'message' && !messageBody.trim()) {
+      toast.error('Please write a message');
       return;
     }
 
@@ -71,7 +109,19 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
     try {
       const token = localStorage.getItem('token');
 
-      if (uploadType === 'link') {
+      if (uploadType === 'message') {
+        // A written note for the students, stored alongside the files and links
+        await axios.post(
+          'http://localhost:3000/api/courses/add-material-message',
+          {
+            courseId: course._id,
+            title: messageTitle,
+            content: messageBody
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        toast.success('Message posted successfully!');
+      } else if (uploadType === 'link') {
         // Save link directly to course (you'll need to create this endpoint)
         await axios.post(
           'http://localhost:3000/api/courses/add-material-link',
@@ -107,6 +157,8 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
       setShowUploadModal(false);
       setSelectedFile(null);
       setMaterialLink('');
+      setMessageTitle('');
+      setMessageBody('');
       if (onActionSuccess) onActionSuccess();
     } catch (error) {
       console.error('Upload error:', error);
@@ -169,11 +221,16 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
   // Check if student is enrolled
   const isStudentEnrolled = userRole === 'student' && (enrollmentStatus === 'enrolled' || isEnrolled);
 
+  // Enrolled students read the materials; lecturers and admins also manage them from
+  // the same popup. The action button below stops the click, so only the upper part
+  // of the card opens it.
+  const canOpenDetails = isStudentEnrolled || userRole === 'lecturer' || userRole === 'admin';
+
   return (
     <>
       <div 
-        className={`bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-md p-5 hover:shadow-xl hover:scale-105 transition-all duration-300 border border-gray-100 ${isStudentEnrolled ? 'cursor-pointer' : ''}`}
-        onClick={() => isStudentEnrolled && setShowDetailsModal(true)}
+        className={`bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-md p-5 hover:shadow-xl hover:scale-105 transition-all duration-300 border border-gray-100 ${canOpenDetails ? 'cursor-pointer' : ''}`}
+        onClick={() => canOpenDetails && setShowDetailsModal(true)}
       >
         <div className="flex items-start justify-between mb-3">
           <h3 className="text-lg font-bold text-gray-800 leading-tight flex-1 pr-2">
@@ -220,6 +277,8 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
                   setShowUploadModal(false);
                   setSelectedFile(null);
                   setMaterialLink('');
+                  setMessageTitle('');
+                  setMessageBody('');
                 }}
                 className="text-gray-500 hover:text-gray-700"
                 disabled={loading}
@@ -265,6 +324,18 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
                   />
                   <span className="text-sm text-gray-700">Add Link</span>
                 </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="uploadType"
+                    value="message"
+                    checked={uploadType === 'message'}
+                    onChange={(e) => setUploadType(e.target.value)}
+                    className="mr-2 text-teal-600 focus:ring-teal-500"
+                    disabled={loading}
+                  />
+                  <span className="text-sm text-gray-700">Post Message</span>
+                </label>
               </div>
             </div>
 
@@ -272,7 +343,7 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
             {uploadType === 'file' && (
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select File
+                  Select File <span className="font-normal text-gray-500">(max 10 MB)</span>
                 </label>
                 <input
                   type="file"
@@ -282,7 +353,8 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
                 />
                 {selectedFile && (
                   <p className="mt-2 text-sm text-gray-600">
-                    Selected: <span className="font-medium">{selectedFile.name}</span>
+                    Selected: <span className="font-medium">{selectedFile.name}</span>{' '}
+                    <span className="text-gray-500">({formatFileSize(selectedFile.size)})</span>
                   </p>
                 )}
               </div>
@@ -308,12 +380,46 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
               </div>
             )}
 
+            {/* Message Section */}
+            {uploadType === 'message' && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Subject <span className="font-normal text-gray-500">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Class postponed to Friday"
+                  value={messageTitle}
+                  onChange={(e) => setMessageTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  disabled={loading}
+                />
+
+                <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">
+                  Message
+                </label>
+                <textarea
+                  rows={5}
+                  placeholder="Write a note for the students taking this course..."
+                  value={messageBody}
+                  onChange={(e) => setMessageBody(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-y"
+                  disabled={loading}
+                />
+                <p className="mt-2 text-xs text-gray-500">
+                  Students see this with the course materials. Nothing is uploaded.
+                </p>
+              </div>
+            )}
+
             <div className="flex gap-3">
               <button
                 onClick={() => {
                   setShowUploadModal(false);
                   setSelectedFile(null);
                   setMaterialLink('');
+                  setMessageTitle('');
+                  setMessageBody('');
                 }}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition"
                 disabled={loading}
@@ -322,10 +428,12 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
               </button>
               <button
                 onClick={handleUploadMaterial}
-                disabled={(uploadType === 'file' && !selectedFile) || (uploadType === 'link' && !materialLink) || loading}
+                disabled={(uploadType === 'file' && !selectedFile) || (uploadType === 'link' && !materialLink) || (uploadType === 'message' && !messageBody.trim()) || loading}
                 className="flex-1 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg font-medium hover:from-teal-600 hover:to-emerald-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? (uploadType === 'file' ? 'Uploading...' : 'Adding...') : (uploadType === 'file' ? 'Upload' : 'Add Link')}
+                {loading
+                  ? (uploadType === 'file' ? 'Uploading...' : uploadType === 'message' ? 'Posting...' : 'Adding...')
+                  : (uploadType === 'file' ? 'Upload' : uploadType === 'message' ? 'Post Message' : 'Add Link')}
               </button>
             </div>
           </div>
@@ -333,131 +441,13 @@ const CourseCard = ({ course = {}, userRole = '', onActionSuccess, isEnrolled = 
       )}
 
       {/* Course Details Modal for Student */}
-      {showDetailsModal && isStudentEnrolled && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">{course.title}</h2>
-                <p className="text-sm text-gray-600 mt-1">Course Code: <span className="font-semibold text-teal-600">{course.code}</span></p>
-              </div>
-              <button
-                onClick={() => setShowDetailsModal(false)}
-                className="text-gray-500 hover:text-gray-700 transition"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6">
-              {/* Course Information */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">Course Information</h3>
-                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                    </svg>
-                    <span className="text-sm text-gray-700"><span className="font-semibold">{course.credit || 0}</span> Credits</span>
-                  </div>
-                  <div className="pt-2 border-t border-gray-200">
-                    <p className="text-sm text-gray-700 leading-relaxed">
-                      {course.description || 'No description available.'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Course Materials */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Course Materials
-                  <span className="text-sm font-normal text-gray-500">({course.resources?.length || 0})</span>
-                </h3>
-
-                {course.resources && course.resources.length > 0 ? (
-                  <div className="space-y-2">
-                    {course.resources.map((material, index) => (
-                      <div
-                        key={index}
-                        className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-3 flex-1 min-w-0">
-                            {/* Icon based on material type */}
-                            {material.type === 'link' ? (
-                              <svg className="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                              </svg>
-                            ) : (
-                              <svg className="w-6 h-6 text-teal-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                              </svg>
-                            )}
-                            
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-800 truncate">
-                                {material.filename || material.url}
-                              </p>
-                              <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                                <span className="px-2 py-0.5 bg-gray-100 rounded-full">
-                                  {material.type === 'link' ? 'External Link' : 'File'}
-                                </span>
-                                {material.createdAt && (
-                                  <span>
-                                    {new Date(material.createdAt).toLocaleDateString()}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Action button */}
-                          <a
-                            href={material.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg text-sm font-medium hover:from-teal-600 hover:to-emerald-600 transition whitespace-nowrap"
-                          >
-                            {material.type === 'link' ? (
-                              <>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                </svg>
-                                Open
-                              </>
-                            ) : (
-                              <>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                                Download
-                              </>
-                            )}
-                          </a>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-gray-50 rounded-lg p-8 text-center">
-                    <svg className="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <p className="text-gray-500 text-sm">No materials available yet</p>
-                    <p className="text-gray-400 text-xs mt-1">Check back later for course materials</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <CourseDetailsModal
+        course={course}
+        isOpen={showDetailsModal && canOpenDetails}
+        onClose={() => setShowDetailsModal(false)}
+        userRole={userRole}
+        onMaterialsChanged={onActionSuccess}
+      />
     </>
   );
 };

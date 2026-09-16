@@ -290,6 +290,30 @@ export const generateS3Key = (uploadType, identifier, file) => {
     }
 }
 
+// The bucket everything is stored in. Uploads and downloads both resolve it here so
+// the two can never drift apart.
+export const getBucketName = () =>
+    (
+        process.env.AWS_S3_BUCKET_NAME ||
+        process.env.AWS_BUCKET ||
+        "geo-lms"
+    ).trim();
+
+// Maximum upload size per upload type, in bytes.
+// Lecturers upload course material (slides, PDFs, recordings), so that type gets the
+// largest allowance; preview images stay small.
+export const MAX_UPLOAD_SIZE = {
+    'course-material': 10 * 1024 * 1024, // 10MB
+    'degree-preview': 5 * 1024 * 1024,   // 5MB
+    default: 5 * 1024 * 1024             // 5MB
+};
+
+export const getMaxUploadSize = (uploadType) =>
+    MAX_UPLOAD_SIZE[uploadType] ?? MAX_UPLOAD_SIZE.default;
+
+// Human readable form of a byte count, for error messages shown to the user
+export const formatFileSize = (bytes) => `${Math.round(bytes / (1024 * 1024))} MB`;
+
 // Multer S3 Upload Middleware
 export const createUploadMiddleware = (uploadType) => {
 
@@ -299,12 +323,7 @@ export const createUploadMiddleware = (uploadType) => {
 
             s3: s3,
 
-            bucket:
-                (
-                    process.env.AWS_S3_BUCKET_NAME ||
-                    process.env.AWS_BUCKET ||
-                    'geo-lms'
-                ).trim(),
+            bucket: getBucketName(),
 
 
             contentType: multerS3.AUTO_CONTENT_TYPE,
@@ -394,7 +413,7 @@ export const createUploadMiddleware = (uploadType) => {
 
 
         limits:{
-            fileSize:5 * 1024 * 1024
+            fileSize: getMaxUploadSize(uploadType)
         },
 
 
@@ -718,6 +737,8 @@ export default {
 
     upload,s3,
     createUploadMiddleware,createS3Folder,
-    deleteS3Object,deleteS3Folder,generateS3Key
+    deleteS3Object,deleteS3Folder,generateS3Key,
+    MAX_UPLOAD_SIZE,getMaxUploadSize,formatFileSize,
+    getBucketName
 
 };

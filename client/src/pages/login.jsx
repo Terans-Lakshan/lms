@@ -48,7 +48,17 @@ function Login() {
         }
       }
     } catch (error) {
-      toast.error(error?.response?.data?.error || "Failed to login");
+      const data = error?.response?.data;
+
+      // The account is only created once the OTP is confirmed, so send a signup
+      // that is still waiting on its code back to the verification screen
+      if (data?.requiresVerification) {
+        toast.error(data.message);
+        navigate("/signup-confirmation", { state: { email: data.email || email } });
+        return;
+      }
+
+      toast.error(data?.error || data?.message || "Failed to login");
       console.log(error);
     }
   };

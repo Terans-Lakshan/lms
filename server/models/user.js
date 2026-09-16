@@ -14,7 +14,9 @@ const userSchema = new Schema({
     googleId: { type: String },
     isVerified: { type: Boolean, default: false },
     otp: { type: String },
-    otpExpires: { type: Date }
+    otpExpires: { type: Date },
+    resetOtp: { type: String },
+    resetOtpExpires: { type: Date }
 }, { timestamps: true });
 
 //const User = mongoose.model('User', userSchema);

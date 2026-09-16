@@ -24,7 +24,16 @@ const ManageUsers = () => {
     const token = localStorage.getItem('token');
     axios.get("/api/auth/profile", {
       headers: { Authorization: `Bearer ${token}` }
-    }).then((res) => setUser(res.data));
+    })
+      .then((res) => setUser(res.data))
+      .catch((error) => {
+        // The profile endpoint answers 401 once the session is gone
+        console.error('Could not load the signed-in admin:', error);
+        if (error?.response?.status === 401) {
+          localStorage.removeItem('token');
+          navigate('/login');
+        }
+      });
     fetchUsers();
     fetchNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps

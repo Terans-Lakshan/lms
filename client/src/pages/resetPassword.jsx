@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
 
 const ResetPassword = () => {
     const [searchParams] = useSearchParams();
@@ -11,20 +10,6 @@ const ResetPassword = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
-    const [userEmail, setUserEmail] = useState('');
-
-    useEffect(() => {
-        // Decode token to get email
-        const token = searchParams.get('token');
-        if (token) {
-            try {
-                const decoded = jwtDecode(token);
-                setUserEmail(decoded.email || '');
-            } catch (err) {
-                console.error('Failed to decode token:', err);
-            }
-        }
-    }, [searchParams]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -61,10 +46,6 @@ const ResetPassword = () => {
 
                 <h2 className="text-xl font-semibold text-gray-900 mb-2 pt-1">Reset Password</h2>
                 <p className="text-sm text-gray-600 mb-1">Enter your new password</p>
-                {userEmail && (
-                    <p className="text-sm text-gray-500 mb-4">for {userEmail}</p>
-                )}
-
                 {error && (
                     <div className="bg-red-100 text-red-700 p-2 rounded mb-3 text-sm">
                         {error}

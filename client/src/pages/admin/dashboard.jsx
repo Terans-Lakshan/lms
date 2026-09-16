@@ -7,6 +7,7 @@ import Header from "../../components/header";
 import Sidebar from "../../components/sidebar";
 import DegreeCard from "../../components/degreeCard";
 import RequestNotification from "../../components/requestNotification";
+import CourseDetailsModal from "../../components/courseDetailsModal";
 import ContactInfo from "../../components/contactInfo";
 
 const AdminDashboard = () => {
@@ -30,6 +31,7 @@ const AdminDashboard = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [selectedDegree, setSelectedDegree] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [uploadedImageKey, setUploadedImageKey] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -483,11 +485,21 @@ const AdminDashboard = () => {
                         {selectedDegree.courses && selectedDegree.courses.length > 0 ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {selectedDegree.courses.map((course) => (
-                              <div key={course._id} className="p-4 border border-gray-200 rounded-lg hover:border-teal-300 transition">
+                              <button
+                                key={course._id}
+                                type="button"
+                                onClick={() => setSelectedCourse(course)}
+                                className="p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-md transition text-left w-full"
+                              >
                                 <h4 className="font-semibold text-gray-800 mb-1">{course.title}</h4>
                                 <p className="text-sm text-gray-600 mb-2">{course.code}</p>
-                                <p className="text-xs text-gray-500">Credits: {course.credit}</p>
-                              </div>
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs text-gray-500">Credits: {course.credit}</p>
+                                  <span className="text-xs font-medium text-teal-600">
+                                    {course.resources?.length || 0} material{(course.resources?.length || 0) === 1 ? '' : 's'}
+                                  </span>
+                                </div>
+                              </button>
                             ))}
                           </div>
                         ) : (
@@ -830,6 +842,15 @@ const AdminDashboard = () => {
           )}
           </div>
         </main>
+
+        {/* Course details popup: name, code and the uploaded materials */}
+        <CourseDetailsModal
+          course={selectedCourse}
+          isOpen={!!selectedCourse}
+          onClose={() => setSelectedCourse(null)}
+          userRole="admin"
+          onMaterialsChanged={fetchDegreePrograms}
+        />
 
         {/* Right Sidebar - Notifications */}
         <aside className={`bg-white border-l border-gray-200 p-6 overflow-auto transition-all duration-300 ${

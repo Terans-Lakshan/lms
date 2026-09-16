@@ -5,7 +5,7 @@
 // const { authenticateToken, isAdmin } = require('../middlewares/auth');
 
 import express from 'express';
-import { test,registerUser, loginUser, getProfile, forgetPassword, resetPassword, verifyOtp, resendOtp, getAllUsers, getAllLecturers } from '../controllers/authController.js';
+import { test,registerUser, loginUser, getProfile, forgetPassword, resetPassword, verifyOtp, verifyResetOtp, resendOtp, getAllUsers, getAllLecturers } from '../controllers/authController.js';
 import { authenticateToken, isAdmin } from '../middlewares/auth.js';
 import cors from 'cors';
 import { Router } from 'express';
@@ -22,6 +22,7 @@ router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.get('/profile', getProfile);
 router.post('/forgetpassword', forgetPassword);
+router.post('/verify-reset-otp', verifyResetOtp);
 router.post('/resetpassword', resetPassword);
 router.post('/verify-otp', verifyOtp);
 router.post("/resend-otp", resendOtp);

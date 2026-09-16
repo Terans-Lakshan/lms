@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 
 const ForgetPassword = () => {
   const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
@@ -12,9 +14,21 @@ const ForgetPassword = () => {
     setMessage("");
     try {
       const response = await axios.post('http://localhost:3000/api/auth/forgetpassword', { email });
+      setOtpSent(true);
       setMessage(response.data.message || "You will receive a password reset link.");
     } catch (error) {
       setMessage(error.response?.data?.message || "Error sending reset email. Please try again.");
+    }
+  };
+
+  const verifyOtp = async (e) => {
+    e.preventDefault();
+    setMessage("");
+    try {
+      const response = await axios.post('http://localhost:3000/api/auth/verify-reset-otp', { email, otp });
+      navigate(`/reset-password?token=${encodeURIComponent(response.data.resetToken)}`);
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Invalid or expired OTP. Please try again.");
     }
   };
 
@@ -32,7 +46,7 @@ const ForgetPassword = () => {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6 h-50%">
+        <form onSubmit={otpSent ? verifyOtp : handleSubmit} className="space-y-6 h-50%">
           <label className="block">
             <span className="text-sm font-medium text-gray-700">Email Address</span>
             <input
@@ -41,17 +55,35 @@ const ForgetPassword = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
               required
+              disabled={otpSent}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm 
                          focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 p-2"
             />
           </label>
+
+          {otpSent && (
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">Verification OTP</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                maxLength="6"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                placeholder="Enter the 6-digit OTP"
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 p-2"
+              />
+            </label>
+          )}
 
           <button
             type="submit"
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 
                        rounded-md shadow transition duration-200"
           >
-            Send Verification Link
+            {otpSent ? "Verify OTP" : "Send OTP"}
           </button>
         </form>
 

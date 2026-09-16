@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import Header from "../../components/header";
 import Sidebar from "../../components/sidebar";
 import DegreeCard from "../../components/degreeCard";
+import CourseDetailsModal from "../../components/courseDetailsModal";
 import ContactInfo from "../../components/contactInfo";
 
 const LecturerDashboard = () => {
@@ -21,6 +22,7 @@ const LecturerDashboard = () => {
   const [processingRequest, setProcessingRequest] = useState({});
   const [enrolledPrograms, setEnrolledPrograms] = useState([]);
   const [selectedDegree, setSelectedDegree] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState(null);
 
   const fetchNotifications = async () => {
     try {
@@ -80,6 +82,14 @@ const LecturerDashboard = () => {
       const programsRes = await axios.get('/api/degree-programs');
       setDegreePrograms(programsRes.data);
       setFilteredPrograms(programsRes.data);
+
+      // A teach request that was just accepted changes what this lecturer is
+      // assigned to, so the sidebar counts have to be refreshed as well
+      const enrolledRes = await axios.get('/api/degree-programs/my-enrollments', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEnrolledPrograms(enrolledRes.data);
+
       fetchNotifications(); // Also refresh notifications
     } catch (error) {
       console.error('Error refreshing data:', error);
@@ -88,20 +98,29 @@ const LecturerDashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      const token = localStorage.getItem('token');
+      console.log('Lecturer Dashboard - Token:', token ? 'Present' : 'Missing');
+
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      // Only a failed sign-in check sends the lecturer back to login. The fetches
+      // below each handle their own failure, so one broken request no longer wipes
+      // out the rest of the dashboard.
       try {
-        const token = localStorage.getItem('token');
-        console.log('Lecturer Dashboard - Token:', token ? 'Present' : 'Missing');
-        
-        if (!token) {
-          navigate('/login');
-          return;
-        }
-        
         const response = await axios.get('/api/auth/profile', {
           headers: { Authorization: `Bearer ${token}` }
         });
         console.log('Lecturer Dashboard - User data:', response.data);
-        
+
+        if (!response.data) {
+          localStorage.removeItem('token');
+          navigate('/login');
+          return;
+        }
+
         // Check if user has lecturer role
         if (response.data.role !== 'lecturer') {
           toast.error(`Access denied. You are logged in as ${response.data.role}. Please log in with a lecturer account.`);
@@ -109,26 +128,39 @@ const LecturerDashboard = () => {
           navigate('/login');
           return;
         }
-        
+
         setUser(response.data);
-        
-        // Fetch all degree programs
+      } catch (error) {
+        console.error('Lecturer Dashboard - session check failed:', error);
+        toast.error(error?.response?.data?.message || 'Your session has ended. Please log in again.');
+        localStorage.removeItem('token');
+        navigate('/login');
+        return;
+      }
+
+      // Fetch all degree programs
+      try {
         const programsRes = await axios.get('/api/degree-programs');
         setDegreePrograms(programsRes.data);
         setFilteredPrograms(programsRes.data);
+      } catch (error) {
+        console.error('Lecturer Dashboard - failed to load degree programs:', error);
+        toast.error('Could not load the degree programs. Please refresh to try again.');
+      }
 
-        // Fetch lecturer's enrolled programs
+      // Fetch lecturer's enrolled programs
+      try {
         const enrolledRes = await axios.get('/api/degree-programs/my-enrollments', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setEnrolledPrograms(enrolledRes.data);
-
-        // Fetch notifications
-        fetchNotifications();
       } catch (error) {
-        console.error('Error fetching data:', error);
-        navigate('/login');
+        console.error('Lecturer Dashboard - failed to load assigned programs:', error);
+        setEnrolledPrograms([]);
       }
+
+      // Fetch notifications
+      fetchNotifications();
     };
     
     fetchData();
@@ -285,11 +317,21 @@ const LecturerDashboard = () => {
                     {selectedDegree.courses && selectedDegree.courses.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {selectedDegree.courses.map((course) => (
-                          <div key={course._id} className="p-4 border border-gray-200 rounded-lg hover:border-teal-300 transition">
+                          <button
+                            key={course._id}
+                            type="button"
+                            onClick={() => setSelectedCourse(course)}
+                            className="p-4 border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-md transition text-left w-full"
+                          >
                             <h4 className="font-semibold text-gray-800 mb-1">{course.title}</h4>
                             <p className="text-sm text-gray-600 mb-2">{course.code}</p>
-                            <p className="text-xs text-gray-500">Credits: {course.credit}</p>
-                          </div>
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-gray-500">Credits: {course.credit}</p>
+                              <span className="text-xs font-medium text-teal-600">
+                                {course.resources?.length || 0} material{(course.resources?.length || 0) === 1 ? '' : 's'}
+                              </span>
+                            </div>
+                          </button>
                         ))}
                       </div>
                     ) : (
@@ -325,6 +367,15 @@ const LecturerDashboard = () => {
             </>
           )}
         </main>
+
+        {/* Course details popup: name, code and the uploaded materials */}
+        <CourseDetailsModal
+          course={selectedCourse}
+          isOpen={!!selectedCourse}
+          onClose={() => setSelectedCourse(null)}
+          userRole="lecturer"
+          onMaterialsChanged={refreshData}
+        />
 
         {/* Right Sidebar */}
         <aside className={`bg-white border-l border-gray-200 p-6 overflow-auto transition-all duration-300 ${
@@ -365,7 +416,9 @@ const LecturerDashboard = () => {
                     <p className="text-xs font-medium text-blue-700">Total Courses</p>
                   </div>
                   <p className="text-2xl font-bold text-blue-700">
-                    {enrolledPrograms.reduce((total, program) => total + (program.courses?.length || 0), 0)}
+                    {/* my-enrollments returns { degreeProgram: {...} }, so the courses
+                        live one level down - reading program.courses always gave 0 */}
+                    {enrolledPrograms.reduce((total, enrollment) => total + (enrollment.degreeProgram?.courses?.length || 0), 0)}
                   </p>
                 </div>
               </div>

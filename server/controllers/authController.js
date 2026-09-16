@@ -6,6 +6,7 @@
 // const axios = require('axios');
 
 import User from '../models/User.js';
+import PendingUser from '../models/pendingUser.js';
 import DegreeUser from '../models/degreeUser.js';
 import {comparePassword,hashPassword} from '../middlewares/auth.js';
 //import hashPassword from '../middlewares/auth.js';
@@ -18,8 +19,23 @@ export const test = (req,res)=>{
     res.send("Auth route working");
 }
 
-export const sendResetPasswordLinkEmail = async(email, resetLink, name)=>{
+export const sendResetPasswordLinkEmail = async(email, otp, name)=>{
+    if(!process.env.GOOGLE_SCRIPT_URL){
+        throw new Error("GOOGLE_SCRIPT_URL missing in .env");
+    }
 
+    const response = await axios.post(
+        process.env.GOOGLE_SCRIPT_URL,
+        {
+            email,
+            otp,
+            name,
+            type: "password-reset-otp"
+        }
+    );
+
+    console.log("Password reset OTP mail response:", response.data);
+    return response.data;
 }
 // using Google script to send email instead of nodemailer
 export const sendOTPEmail = async(email, otp, firstName)=>{
@@ -79,67 +95,64 @@ export const registerUser = async (req,res)=>{
             return res.status(400).json({message:"Password is required and should be at least 8 characters long"});
         }
 
-        // check if email was entered
+        // An account only exists once its email has been verified, so this never
+        // trips on a signup somebody started and abandoned
         const exist=await User.findOne({email});
         if(exist){
             return res.status(409).json({message:"Email is taken Already"});
         }
-        
-        const hashedPassword=await hashPassword(password);
-        
+
         // Extract registration number from email (everything before @)
         const registrationNo = email.split('@')[0];
-        
+
+        // Two different addresses can share the prefix before the @, and the field is
+        // unique, so reject the clash here instead of failing on the database index
+        const registrationTaken = await User.findOne({ registrationNo });
+        if (registrationTaken) {
+            return res.status(409).json({ message: "This registration number is already used" });
+        }
+
+        const hashedPassword=await hashPassword(password);
+
         // Generate 6-digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-        
-        // Create user with unverified status
-        const user=await User.create({
+
+        // The signup is held outside the users collection until the OTP is confirmed.
+        // Clearing any earlier pending signup lets somebody who never received the
+        // first code start over with the same email.
+        await PendingUser.deleteMany({ $or: [{ email }, { registrationNo }] });
+
+        await PendingUser.create({
             name:{first:firstName,last:lastName},
             email,
             registrationNo,
             password: hashedPassword,
             role: userRole,
-            googleId:null,
-            isVerified: false,
             otp,
-            otpExpires
+            otpExpires,
+            // Outlives the OTP so that "resend OTP" still works after the first
+            // code expires; MongoDB drops the record once this passes
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
         });
-        
-        // Send OTP email
-        // const transporter = nodemailer.createTransport({
-        //     service: 'gmail',
-        //     auth: {
-        //         user: process.env.EMAIL_USER,
-        //         pass: process.env.EMAIL_PASS
-        //     }
-        // });
-        
-        // const mailOptions = {
-        //     from: process.env.EMAIL_USER,
-        //     to: email,
-        //     subject: 'Email Verification OTP - GeoLMS',
-        //     html: `
-        //         <h2>Welcome to GeoLMS!</h2>
-        //         <p>Hello ${firstName},</p>
-        //         <p>Thank you for signing up. Your OTP for email verification is:</p>
-        //         <div style="background-color: #f0f0f0; padding: 15px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #10b981; margin: 20px 0;">
-        //             ${otp}
-        //         </div>
-        //         <p>This OTP will expire in 5 minutes.</p>
-        //         <p>If you didn't sign up for this account, please ignore this email.</p>
-        //     `
-        // };
-        
-        // await transporter.sendMail(mailOptions);
-        // console.log('OTP sent to:', email);
-        // new add
-        await sendOTPEmail(
-            email,
-            otp,
-            firstName
-        );
+
+
+        // Without the code the signup cannot be completed, so a mail failure clears
+        // the pending record and reports the real reason rather than a bare 500
+        try {
+            await sendOTPEmail(
+                email,
+                otp,
+                firstName
+            );
+        } catch (mailError) {
+            await PendingUser.deleteOne({ email });
+            console.log("Failed to send OTP email, pending signup removed:", email, mailError.message);
+            return res.status(502).json({
+                message: "Could not send the verification email. Please check the address and try again."
+            });
+        }
+
         console.log("OTP sent through Google Script:", email);
         // new add close
         res.status(201).json({message: "Registration successful! Please check your email for OTP.", email});
@@ -154,6 +167,17 @@ export const loginUser = async (req, res) => {
         const { email, password } = req.body;   
         const user = await User.findOne({ email });
         if (!user) {
+            // The account is not created until the OTP is confirmed, so a signup
+            // still waiting on its code looks like a missing user here
+            const pending = await PendingUser.findOne({ email });
+            if (pending) {
+                return res.status(403).json({
+                    message: "Please verify your email with the OTP we sent before logging in",
+                    requiresVerification: true,
+                    email
+                });
+            }
+
             return res.status(400).json({ message: "No user found" });
         }
         if (!user.isVerified) {
@@ -187,17 +211,20 @@ export const getProfile = async (req, res) => {
             token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
         }
         
-        if(token){
-            jwt.verify(token,process.env.JWT_SECRET,{},(err,user)=>{
-                if(err) {
-                    console.log('JWT verification error:', err);
-                    return res.json(null);
-                }
-                res.json(user)
-            })
-        }else{
-            res.json(null)
+        // A missing or rejected token is an authentication failure, so it answers 401.
+        // Returning 200 with a null body made every caller read `.role` off null and
+        // treat an expired session as a crash.
+        if(!token){
+            return res.status(401).json({ message: "Not authenticated" });
         }
+
+        jwt.verify(token,process.env.JWT_SECRET,{},(err,user)=>{
+            if(err) {
+                console.log('JWT verification error:', err.message);
+                return res.status(401).json({ message: "Session expired. Please log in again." });
+            }
+            res.json(user)
+        })
     } catch (error) {
         console.log('Profile error:', error);
         res.status(500).json({error: 'Error fetching profile'});
@@ -216,47 +243,50 @@ export const forgetPassword = async (req, res) => {
             return res.status(404).json({ message: "No user found with this email" });
         }
 
-        // Generate reset token
-        const token = jwt.sign({email: user.email, id: user._id}, process.env.JWT_SECRET, {expiresIn: '15m'});
-        const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5174'}/reset-password?token=${token}`;
+        const resetOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        user.resetOtp = resetOtp;
+        user.resetOtpExpires = new Date(Date.now() + 10 * 60 * 1000);
+        await user.save();
 
-        // Configure email transporter
-        // const transporter = nodemailer.createTransport({
-        //     service: 'gmail',
-        //     auth: {
-        //         user: process.env.EMAIL_USER,
-        //         pass: process.env.EMAIL_PASS
-        //     }
-        // });
-
-        // Email options
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: 'Password Reset Request - GeoLMS',
-            html: `
-                <h2>Password Reset Request</h2>
-                <p>Hello ${user.name.first},</p>
-                <p>You requested to reset your password. Click the link below to reset it:</p>
-                <a href="${resetLink}" style="background-color: #10b981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
-                <p>This link will expire in 15 minutes.</p>
-                <p>If you didn't request this, please ignore this email.</p>
-            `
-        };
         await sendResetPasswordLinkEmail(
             email,
-            resetLink,
+            resetOtp,
             user.name.first
         );
-
-        // Send email
-        await transporter.sendMail(mailOptions);
         console.log('Password reset email sent to:', email);
 
-        res.status(200).json({ message: "Password reset instructions sent to your email" });
+        res.status(200).json({ message: "Password reset OTP sent to your email" });
     } catch (error) {
         console.log('Error in forgetPassword:', error);
         res.status(500).json({ error: "Server error during password reset" });
+    }
+}
+
+export const verifyResetOtp = async (req, res) => {
+    const { email, otp } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user || !user.resetOtp || !user.resetOtpExpires) {
+            return res.status(400).json({ message: "Invalid or expired reset OTP" });
+        }
+        if (new Date() > user.resetOtpExpires || user.resetOtp !== otp) {
+            return res.status(400).json({ message: "Invalid or expired reset OTP" });
+        }
+
+        user.resetOtp = undefined;
+        user.resetOtpExpires = undefined;
+        await user.save();
+
+        const resetToken = jwt.sign(
+            { email: user.email, id: user._id, purpose: "password-reset" },
+            process.env.JWT_SECRET,
+            { expiresIn: '15m' }
+        );
+        res.status(200).json({ message: "OTP verified", resetToken });
+    } catch (error) {
+        console.log('Error in verifyResetOtp:', error);
+        res.status(500).json({ error: "Server error during OTP verification" });
     }
 }
 
@@ -266,6 +296,9 @@ export const resetPassword = async (req, res) => {
     try {
         // Verify the token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded.purpose !== "password-reset") {
+            return res.status(400).json({ message: "Invalid password reset token" });
+        }
         
         // Find user by email from token
         const user = await User.findOne({ email: decoded.email });
@@ -294,32 +327,40 @@ export const verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
 
     try {
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        
-        if (user.isVerified) {
+        // A verified account already lives in the users collection
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
             return res.status(400).json({ message: "Email already verified" });
         }
 
-        if (!user.otp || !user.otpExpires) {
-            return res.status(400).json({ message: "OTP not found. Please request a new one." });
+        const pending = await PendingUser.findOne({ email });
+        if (!pending) {
+            return res.status(404).json({ message: "No pending signup found for this email. Please sign up again." });
         }
 
-        if (new Date() > user.otpExpires) {
+        if (new Date() > pending.otpExpires) {
             return res.status(400).json({ message: "OTP has expired. Please request a new one." });
         }
 
-        if (user.otp !== otp) {
+        if (pending.otp !== otp) {
             return res.status(400).json({ message: "Invalid OTP" });
         }
 
-        // Mark user as verified
-        user.isVerified = true;
-        user.otp = undefined;
-        user.otpExpires = undefined;
-        await user.save();
+        // The account is created only now that the email is confirmed. The password
+        // was already hashed at signup, so it is carried over as it is.
+        await User.create({
+            name: pending.name,
+            email: pending.email,
+            registrationNo: pending.registrationNo,
+            password: pending.password,
+            role: pending.role,
+            googleId: null,
+            isVerified: true
+        });
+
+        await PendingUser.deleteOne({ _id: pending._id });
+
+        console.log('Account created after OTP verification:', email);
 
         res.status(200).json({ message: "Email verified successfully! You can now log in." });
     } catch (error) {
@@ -332,21 +373,25 @@ export const resendOtp = async (req, res) => {
     const { email } = req.body;
 
     try {
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        
-        if (user.isVerified) {
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
             return res.status(400).json({ message: "Email already verified" });
+        }
+
+        const user = await PendingUser.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: "No pending signup found for this email. Please sign up again." });
         }
 
         // Generate new OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-        
+
         user.otp = otp;
         user.otpExpires = otpExpires;
+        // Give the pending signup a fresh 24 hours, so asking for another code does
+        // not leave the record about to be dropped by the TTL index
+        user.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
         await user.save();
         
         // Send OTP email
